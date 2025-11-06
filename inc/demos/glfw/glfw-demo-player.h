@@ -58,6 +58,7 @@ public:
             "Demo [" + std::to_string(current_demo + 1) + "/" + std::to_string(demos.size()) + "]" +
             " :: " + std::to_string(resolution.x) + "x" + std::to_string(resolution.y) +
             " :: " + fps + " FPS" +
+            " :: " + std::to_string(renderer->num_items()) + " items" +
             "   [" + std::to_string(x) + "x" + std::to_string(y) + "]"
 
         );

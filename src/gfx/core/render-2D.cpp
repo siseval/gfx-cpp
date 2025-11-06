@@ -100,7 +100,7 @@ std::shared_ptr<Polygon2D> Render2D::create_polygon(const Vec2d position, const 
     auto polygon { std::make_shared<Polygon2D>() };
 
     polygon->set_position(position);
-    polygon->set_points(points);
+    polygon->set_vertices(points);
     polygon->set_color(color);
 
     return polygon;

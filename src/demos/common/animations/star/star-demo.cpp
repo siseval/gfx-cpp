@@ -63,9 +63,12 @@ void StarDemo::render_frame(const double dt)
 {
     double t0 { utils::time_us() };
 
-    double t { utils::time_ms() * 0.002 * speed };
-    double sin_t { std::sin(t) };
-    double cos_t { std::cos(t * 2) };
+    if (!paused)
+    {
+        time += dt * speed;
+    }
+    double sin_t { std::sin(time) };
+    double cos_t { std::cos(time * 2) };
 
     for (int i = 0; i < num_polylines; ++i)
     {
@@ -73,7 +76,7 @@ void StarDemo::render_frame(const double dt)
         auto polyline { polylines[i] };
 
         polyline->set_scale({ 1.0 + progress * (0.8 + sin_t * 0.4), 1.0 + progress * (1 + cos_t * 0.8) });
-        polyline->set_rotation(t * (1.0 + progress));
+        polyline->set_rotation(time * (1.0 + progress));
         polyline->set_line_thickness(1 + progress * 1 + (1 + sin_t) * 1);
     }
 
@@ -95,6 +98,18 @@ void StarDemo::handle_input(const int input)
                 num_polylines -= 1;
                 init();
             }
+            break;
+
+        case 'l':
+            speed += 0.1;
+            break;
+
+        case 'h':
+            speed = std::max(0.1, speed - 0.1);
+            break;
+
+        case ' ':
+            paused = !paused;
             break;
 
         default:

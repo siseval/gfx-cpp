@@ -28,6 +28,10 @@ private:
     std::vector<gfx::core::types::Color4> colors;
     int num_colors = 64;
 
+    double speed = 2.0;
+    double time = 0.0;
+    bool paused = false;
+
 };
 
 }

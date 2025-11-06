@@ -40,9 +40,6 @@ public:
 
     virtual std::vector<std::string> debug_text() { return {}; }
 
-    inline void set_speed(const double s) { speed = s; }
-    inline double get_speed() const { return speed; }
-
     inline std::shared_ptr<gfx::core::Render2D> get_renderer() const { return renderer; }
     inline gfx::math::Vec2i get_resolution() const { return renderer->get_resolution(); }
 
@@ -67,7 +64,6 @@ protected:
 
     std::shared_ptr<gfx::core::Render2D> renderer;
     double last_frame_us = 0.0;
-    double speed = 1.0;
 };
 
 }

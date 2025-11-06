@@ -11,6 +11,7 @@ using namespace gfx::core;
 using namespace gfx::core::types;
 using namespace gfx::math;
 using namespace gfx::geometry;
+using namespace gfx::geometry::types;
 
 
 Box2d Polyline2D::get_geometry_size() const
@@ -155,7 +156,9 @@ void Polyline2D::rasterize(const Matrix3x3d &transform, const std::function<void
     if (do_fill)
     {
         std::vector<Vec2d> transformed_points { utils::transform_points(points, transform) };
-        std::vector<Triangle> triangles { geometry::triangulate_polygon(transformed_points, clockwise) };
+
+        Component polygon { Component(transformed_points, clockwise) };
+        std::vector<Triangle> triangles { geometry::triangulate_polygon(polygon) };
 
         for (const auto& triangle : triangles)
         {

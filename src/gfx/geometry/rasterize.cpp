@@ -63,9 +63,9 @@ void rasterize_filled_triangle(const Triangle &triangle, const Color4 color, con
             Box2i tb;
             tb.min.x = tx;
             tb.min.y = ty;
-            tb.max.x = std::min(tx + TILE_SIZE - 1, bounds.max.x);
-            tb.max.y = std::min(ty + TILE_SIZE - 1, bounds.max.y);
-            tiles.push_back(Tile{ tb });
+            tb.max.x = std::min(tx + TILE_SIZE, bounds.max.x + 1);
+            tb.max.y = std::min(ty + TILE_SIZE, bounds.max.y + 1);
+            tiles.push_back(Tile { tb });
         }
     }
 
@@ -74,17 +74,18 @@ void rasterize_filled_triangle(const Triangle &triangle, const Color4 color, con
         double start_x = static_cast<double>(tb.min.x) + 0.5;
         double start_y = static_cast<double>(tb.min.y) + 0.5;
 
-        double w0_row = a * start_x + b * start_y + c;
-        double w1_row = d * start_x + e * start_y + f;
-        double w2_row = g * start_x + h * start_y + i;
+    
+        double w0_row = a * (tb.min.x + 0.5) + b * (tb.min.y + 0.5) + c;
+        double w1_row = d * (tb.min.x + 0.5) + e * (tb.min.y + 0.5) + f;
+        double w2_row = g * (tb.min.x + 0.5) + h * (tb.min.y + 0.5) + i;
 
-        for (int y = tb.min.y; y <= tb.max.y; ++y)
+        for (int y = tb.min.y; y < tb.max.y; ++y)
         {
             double w0 = w0_row;
             double w1 = w1_row;
             double w2 = w2_row;
 
-            for (int x = tb.min.x; x <= tb.max.x; ++x)
+            for (int x = tb.min.x; x < tb.max.x; ++x)
             {
                 if ((w0 * w1 >= 0) && (w1 * w2 >= 0))
                 {

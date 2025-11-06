@@ -3,10 +3,11 @@
 #include <demos/common/animations/snake/snake-demo.h>
 #include <demos/common/animations/fireworks/fireworks-demo.h>
 #include <demos/common/animations/space/space-demo.h>
-#include <demos/common/animations/text/text-demo.h>
+#include <demos/common/animations/video/video-demo.h>
 #include <demos/common/animations/fractal/fractal-demo.h>
 #include <demos/common/animations/boids/boids-demo.h>
 #include <demos/common/animations/shader/shader-demo.h>
+#include <demos/common/animations/text/text-demo.h>
 
 namespace demos::common::core
 {
@@ -20,7 +21,8 @@ using namespace demos::common;
 
 void DemoPlayer::init()
 {
-    // demos.emplace_back(std::make_shared<text::TextDemo>(renderer));
+    demos.emplace_back(std::make_shared<text::TextDemo>(renderer));
+    // demos.emplace_back(std::make_shared<video::VideoDemo>(renderer));
     demos.emplace_back(std::make_shared<star::StarDemo>(renderer));
     demos.emplace_back(std::make_shared<snake::SnakeDemo>(renderer));
     demos.emplace_back(std::make_shared<boids::BoidsDemo>(renderer));

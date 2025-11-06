@@ -2,28 +2,109 @@
 #include <gfx/geometry/flatten.h>
 #include <demos/common/animations/text/text-demo.h>
 #include <demos/common/core/demo-utils.h>
-#include <gfx/primitives/bitmap-2D.h>
-#include <gfx/core/types/bitmap.h>
 
 namespace demos::common::animations::text
 {
 
-using namespace gfx::math;
-using namespace gfx::primitives;
 using namespace gfx::core::types;
+using namespace gfx::math;
 using namespace demos::common::core;
+
+
 
 void TextDemo::init()
 {
-    load_video(videos[current_video]);
-
     renderer->clear_items();
-    Vec2i resolution { renderer->get_resolution() };
     Vec2d center { renderer->center() };
 
-    auto bitmap { renderer->create_bitmap(center, { 800, 600 }) };
-    bitmap->set_anchor({ 0.5, 0.5 });
-    bitmap->set_scale(0.2);
+    std::vector<Vec2d> poly_points {
+        { 30, 30 }, 
+        { 90, 30 }, 
+        { 90, 90 }, 
+        { 30, 90 }, 
+    };
+    std::vector<Vec2d> hole_points {
+        { 50, 50 },
+        { 70, 55 },
+        { 70, 75 },
+        { 50, 70 },
+    };
+
+    poly = renderer->create_polygon(center, poly_points, Color4(1.0));
+    poly->add_hole_vertices(hole_points);
+    renderer->add_item(poly);
+
+    auto font_manager = renderer->get_font_manager();
+    auto font = font_manager->load_from_file("/Users/sigurdsevaldrud/documents/code/c++/gfx/assets/fonts/ARIAL.ttf");
+
+    if (!font)
+    {
+        throw std::runtime_error("Failed to load font.");
+    }
+
+    std::shared_ptr<gfx::text::GlyphTTF> glyph;
+    // for (auto g : font->get_glyphs())
+    // {
+    //     if (!g.second->contours.empty())
+    //     {
+    //         glyph = g.second;
+    //         break;
+    //     }
+    // }
+    std::string text { "DOLBA" };
+    for (int i = 0; i < text.length(); i++)
+    {
+        double kerning { 15.0 };
+        Vec2d offset { -(text.length() * kerning / 2) + i * kerning, 0 };
+
+        auto polygon = renderer->create_polygon(center + offset, {}, { 255, 255, 255 });
+        polygon->set_rotation_degrees(180);
+        // polyline->set_anchor({ 0.5, 0.5 });
+        polygon->set_scale({ 0.015, 0.0035 });
+        renderer->add_item(polygon);
+
+        glyph = font->get_glyph(text[i]);
+        int contour_index = 0;
+        for (auto contour : glyph->contours)
+        {
+            std::vector<std::pair<Vec2d, bool>> cont;
+            for (auto point : contour)
+            {
+                cont.push_back({ { point.x, point.y }, point.on_curve });
+            }
+
+            std::vector<Vec2d> points;
+            for (auto point : gfx::geometry::flatten_contour(cont))
+            {
+                points.push_back({ point.x, point.y });
+                num_points++;
+            }
+
+            if (is_clockwise(points))
+            {
+                polygon->add_hole_vertices(points, contour_index);
+            }
+
+            else 
+            {
+                polygon->add_vertices(points, contour_index);
+                contour_index++;
+            }
+            
+        }
+    }
+}
+
+bool TextDemo::is_clockwise(std::vector<gfx::math::Vec2d> vertices)
+{
+    double sum = 0.0;
+    for (int i = 0; i < vertices.size(); ++i)
+    {
+        Vec2d p0 { vertices[i] };
+        Vec2d p1 { vertices[(i + 1) % vertices.size()] };
+        sum += (p1.x - p0.x) * (p1.y + p0.y);
+    }
+    return sum < 0.0;
 }
 
 void TextDemo::render_frame(const double dt)
@@ -31,110 +112,13 @@ void TextDemo::render_frame(const double dt)
     double t0 { utils::time_us() };
     double time_ms { t0 / 1000.0 };
 
-    double fps = 60.0;
-    int num_frames = 6573;
-    renderer->clear_items();
-
-    if (!paused)
-    {
-        time_since_last_frame += dt;
-    }
-    if (time_since_last_frame >= (1.0 / fps))
-    {
-        frame_number++;
-        time_since_last_frame = 0.0;
-    }
-
-    if (frame_number >= num_frames)
-    {
-        frame_number = 1;
-    }
-
-    Vec2i resolution { renderer->get_resolution() };
-    Bitmap bm { Bitmap::decode_bmp("/Users/sigurdsevaldrud/documents/code/c++/gfx/assets/" + video_name + "/" + std::to_string(frame_number) + ".bmp") };
-
-    bm.compress_colors(palette);
-    bitmap->load_bitmap(bm);
-    bitmap->set_scale(static_cast<double>(resolution.x) / static_cast<double>(bm.resolution.x));
-    renderer->add_item(bitmap);
-
     renderer->draw_frame();
-}
 
-void TextDemo::cycle_video(const int direction)
-{
-    current_video += direction;
-    if (current_video < 0)
-    {
-        current_video = static_cast<int>(videos.size()) - 1;
-    }
-    else if (current_video >= static_cast<int>(videos.size()))
-    {
-        current_video = 0;
-    }
-    load_video(videos[current_video]);
-}
-
-void TextDemo::load_video(const Video video)
-{
-    switch (video)
-    {
-        case Video::P5:
-            load_p5();
-            break;
-        case Video::BAD_APPLE:
-            load_bad_apple();
-            break;
-    }
-}
-
-void TextDemo::load_bad_apple()
-{
-    video_name = "badapple";
-    frame_number = 1;
-    time_since_last_frame = 0.0;
-    paused = false;
-    palette.clear();
-    Color4 black { 0, 0, 0 , 0 };
-    Color4 white { 255, 255, 255 };
-    int num_colors { 2 };
-    for (int i = 0; i < num_colors; ++i)
-    {
-        double t = static_cast<double>(i) / static_cast<double>(num_colors - 1);
-        palette.push_back(Color4::lerp(black, white, t));
-    }
-}
-
-void TextDemo::load_p5()
-{
-    video_name = "p5";
-    frame_number = 1;
-    time_since_last_frame = 0.0;
-    paused = false;
-    palette = {
-        { 1.0, 0.0, 0.0 },
-        { 1.0, 1.0, 1.0 },
-        { 0.8, 0.8, 0.8 },
-        { 0.4, 0.4, 0.4 },
-        { 0.0, 0.0, 0.0 },
-        { 0.6, 0.6, 0.6 },
-    };
+    last_frame_us = utils::time_us() - t0;
 }
 
 void TextDemo::handle_input(const int input)
 {
-    switch (input)
-    {
-        case ' ':
-            paused = !paused;
-            break;
-        case 'n':
-            cycle_video(1);
-            break;
-        case 'p':
-            cycle_video(-1);
-            break;
-    }
 }
 
 void TextDemo::end()
