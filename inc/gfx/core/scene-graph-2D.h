@@ -44,6 +44,8 @@ public:
     gfx::math::Matrix3x3d get_global_transform(const std::shared_ptr<Primitive2D> primitive);
     void update_global_transforms();
 
+    std::vector<std::pair<std::shared_ptr<Primitive2D>, gfx::math::Matrix3x3d>> get_global_transforms();
+
     void add_item(const std::shared_ptr<Primitive2D> item, const std::shared_ptr<Primitive2D> parent);
 
     inline void add_item(const std::shared_ptr<Primitive2D> item)

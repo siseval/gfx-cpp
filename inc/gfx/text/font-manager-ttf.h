@@ -1,5 +1,5 @@
-#ifndef TTF_PARSER_H
-#define TTF_PARSER_H
+#ifndef FONT_MANAGER_TTF_H
+#define FONT_MANAGER_TTF_H
 
 #include <gfx/text/font-manager.h>
 #include <gfx/text/font-ttf.h>
@@ -21,8 +21,9 @@ private:
     std::vector<uint32_t> parse_loca_table(const std::uint8_t* loca_table, const uint16_t num_glyphs, uint16_t index_to_loc_format);
     std::shared_ptr<GlyphTTF> parse_glyph(const std::uint8_t* glyf_table, const std::vector<uint32_t> &glyph_offsets, const uint16_t glyph_index, bool loca_long_format);
 
+    std::vector<std::shared_ptr<FontTTF>> loaded_fonts;
 };
 
 }
 
-#endif // TTF_PARSER_H
+#endif // FONT_MANAGER_TTF_H

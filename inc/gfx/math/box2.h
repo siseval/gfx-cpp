@@ -64,6 +64,16 @@ public:
         expand(box.max);
     }
 
+    inline std::vector<gfx::math::Vec2<T>> get_corners() const
+    {
+        return {
+            Vec2<T> { min.x, min.y },
+            Vec2<T> { max.x, min.y },
+            Vec2<T> { max.x, max.y },
+            Vec2<T> { min.x, max.y }
+        };
+    }
+
 };
 
 using Box2d = Box2<double>;

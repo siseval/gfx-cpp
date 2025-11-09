@@ -4,6 +4,7 @@ set(GFX_PRIMITIVES_SOURCES
     polyline-2D.cpp
     polygon-2D.cpp
     bitmap-2D.cpp
+    text-2D.cpp
 )
 
 add_library(gfx_primitives STATIC ${GFX_PRIMITIVES_SOURCES})

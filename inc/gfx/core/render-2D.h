@@ -1,6 +1,7 @@
 #ifndef RENDER_2D_H
 #define RENDER_2D_H
 
+#include <iostream>
 #include <gfx/core/scene-graph-2D.h>
 #include <gfx/core/render-surface.h>
 #include <gfx/core/types/color4.h>
@@ -12,6 +13,7 @@
 #include <gfx/primitives/text-2D.h>
 #include <gfx/primitives/bitmap-2D.h>
 #include <gfx/text/font-manager-ttf.h>
+#include <gfx/debug/debug-viewer.h>
 
 namespace gfx::core
 {
@@ -25,12 +27,25 @@ class Render2D
 
 public:
 
-    Render2D(std::shared_ptr<RenderSurface> surface, gfx::math::Vec2d viewport_scaling = gfx::math::Vec2d { 1, 1 }) : 
+    Render2D(std::shared_ptr<RenderSurface> surface, gfx::math::Vec2d viewport_scaling = gfx::math::Vec2d { 1, 1 }, std::string default_font_path = "") : 
         surface(surface), 
         scene_graph(std::make_shared<SceneGraph2D>()), 
         font_manager(std::make_shared<gfx::text::FontManagerTTF>()),
+        debug_viewer(std::make_shared<gfx::debug::DebugViewer>()),
         viewport_scaling(viewport_scaling) 
     {
+        if (!default_font_path.empty())
+        {
+            try
+            {
+                default_font = font_manager->load_from_file(default_font_path);
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Render2D: Failed to load default font from '" << default_font_path << "': " << e.what() << std::endl;
+            }
+        }
+        set_debug_font(default_font);
         surface->init();
     }
 
@@ -68,6 +83,11 @@ public:
     {
         return create_bitmap(gfx::math::Vec2d { x, y }, resolution);
     };
+    std::shared_ptr<gfx::primitives::Text2D> create_text(const gfx::math::Vec2d position, const std::string &text, const std::shared_ptr<gfx::text::FontTTF> font, const double font_size, const types::Color4 color) const;
+    std::shared_ptr<gfx::primitives::Text2D> create_text(const double x, const double y, const std::string &text, const std::shared_ptr<gfx::text::FontTTF> font, const double font_size, const types::Color4 color) const 
+    {
+        return create_text(gfx::math::Vec2d { x, y }, text, font, font_size, color);
+    };
 
     bool collides(const gfx::math::Vec2d point, const std::shared_ptr<Primitive2D>) const;
     bool collides(const double x, const double y, const std::shared_ptr<Primitive2D> primitive) const
@@ -85,10 +105,26 @@ public:
     inline std::shared_ptr<RenderSurface> get_render_surface() const { return surface; };
     inline std::shared_ptr<gfx::text::FontManagerTTF> get_font_manager() const { return font_manager; };
 
+    inline void set_enable_debug_viewer(const bool enable) { debug_viewer->set_enabled(enable); }
+    inline bool get_enable_debug_viewer() const { return debug_viewer->is_enabled(); }
+
+    inline void set_debug_viewer_show_aabb(const bool show) { debug_viewer->set_show_aabb(show); }
+    inline bool get_debug_viewer_show_aabb() const { return debug_viewer->get_show_aabb(); }
+
+    inline void set_debug_viewer_show_obb(const bool show) { debug_viewer->set_show_obb(show); }
+    inline bool get_debug_viewer_show_obb() const { return debug_viewer->get_show_obb(); }
+
+    inline void set_debug_viewer_show_anchor(const bool show) { debug_viewer->set_show_anchor(show); }
+    inline bool get_debug_viewer_show_anchor() const { return debug_viewer->get_show_anchor(); }
+
     inline void add_item(const std::shared_ptr<Primitive2D> item) { scene_graph->add_item(item); }
     inline void add_item(const std::shared_ptr<Primitive2D> item, const std::shared_ptr<Primitive2D> parent) { scene_graph->add_item(item, parent); }
     inline void remove_item(const std::shared_ptr<Primitive2D> item) { scene_graph->remove_item(item); }
     inline void clear_items() { scene_graph->clear(); }
+
+    inline void set_debug_font(const std::shared_ptr<gfx::text::FontTTF> font) { debug_viewer->set_font(font); }
+
+    void add_debug_items() const;
 
     inline int num_items() const { return scene_graph->num_items(); }
     inline bool contains_item(const std::shared_ptr<Primitive2D> item) const { return scene_graph->contains_item(item); }
@@ -106,8 +142,13 @@ private:
     std::shared_ptr<RenderSurface> surface;
     std::shared_ptr<SceneGraph2D> scene_graph;
     std::shared_ptr<gfx::text::FontManagerTTF> font_manager;
+    std::shared_ptr<gfx::debug::DebugViewer> debug_viewer;
+
+    std::shared_ptr<gfx::text::FontTTF> default_font;
 
     std::vector<std::pair<std::shared_ptr<Primitive2D>, gfx::math::Matrix3x3d>> draw_queue;
+
+    mutable double last_frame_time_us = 0.0;
 
     math::Vec2d viewport_scaling;
 };

@@ -246,6 +246,49 @@ std::shared_ptr<FontTTF> FontManagerTTF::load_from_memory(const uint8_t* data, c
     }
     font->set_glyphs(codepoint_to_glyph);
 
+    auto it_kern { tables.find("kern") };
+    if (it_kern != tables.end())
+    {
+        const uint8_t* kern_table { data + it_kern->second.offset };
+        std::size_t kern_length { it_kern->second.length };
+
+        if (kern_length >= 4)
+        {
+            uint16_t num_subtables { read_u16(kern_table + 2) };
+            const uint8_t* subtable_ptr { kern_table + 4 };
+
+            for (uint16_t i = 0; i < num_subtables; ++i)
+            {
+                if (subtable_ptr + 6 > kern_table + kern_length)
+                {
+                    break;
+                }
+
+                uint16_t st_version { read_u16(subtable_ptr) };
+                uint16_t st_length  { read_u16(subtable_ptr + 2) };
+                uint16_t st_format  { read_u16(subtable_ptr + 4) };
+
+                if (st_format == 0)
+                {
+                    const uint8_t* data_ptr { subtable_ptr + 6 };
+                    std::size_t num_pairs { read_u16(data_ptr) };
+                    data_ptr += 8;
+
+                    for (std::size_t j = 0; j < num_pairs; ++j)
+                    {
+                        uint16_t left  { read_u16(data_ptr + j * 6 + 0) };
+                        uint16_t right { read_u16(data_ptr + j * 6 + 2) };
+                        int16_t value  { read_s16(data_ptr + j * 6 + 4) };
+                        font->set_kerning(left, right, value);
+                    }
+                }
+                subtable_ptr += st_length;
+            }
+        }
+    }
+
+    loaded_fonts.push_back(font);
+
     return font;
 }
 

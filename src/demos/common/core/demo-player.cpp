@@ -81,6 +81,9 @@ void DemoPlayer::handle_input(const int input)
         case '3':
             show_debug = !show_debug;
             break;
+        case '4':
+            renderer->set_enable_debug_viewer(!renderer->get_enable_debug_viewer());
+            break;
         case 'N':
             cycle_demo(1);
             break;

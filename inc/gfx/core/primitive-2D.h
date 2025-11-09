@@ -170,10 +170,10 @@ protected:
     int depth = 0;
 
     mutable types::OBB2D cached_obb;
-    mutable bool obb_dirty = false;
+    mutable bool obb_dirty = true;
 
     mutable gfx::math::Matrix3x3d cached_transform;
-    mutable bool transform_dirty = false;
+    mutable bool transform_dirty = true;
     int64_t transform_version = -1;
 
     // bool should_fill_pixel(std::shared_ptr<GfxContext2D> context, const gfx::math::Vec2d pixel) const;

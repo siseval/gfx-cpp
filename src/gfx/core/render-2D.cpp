@@ -13,10 +13,21 @@ void Render2D::draw_frame() const
 {
     surface->clear_frame_buffer();
 
-    double t { std::chrono::duration<double, std::milli>(
+    double t { std::chrono::duration<double, std::micro>(
         std::chrono::high_resolution_clock::now().time_since_epoch()
-    ).count() / 1000 };
+    ).count() };
 
+    if (debug_viewer->is_enabled())
+    {
+        debug_viewer->populate({
+            scene_graph->get_global_transforms(),
+            1000000 / (t - last_frame_time_us),
+            scene_graph->num_items(),
+            get_resolution()
+        });
+    }
+
+    last_frame_time_us = t;
 
     std::vector<std::pair<std::shared_ptr<Primitive2D>, Matrix3x3d>> draw_queue { 
         get_draw_queue() 
@@ -32,7 +43,7 @@ void Render2D::draw_frame() const
         std::function<void(const Pixel&)> emit_pixel = primitive->get_use_shader() ?
             std::function([this, primitive, t](const Pixel &pixel) {
                 Vec2d uv { primitive->get_uv(pixel.position) };
-                ShaderInput2D input { uv, t };
+                ShaderInput2D input { uv, t / 1000000.0 };
                 Color4 shaded_color { primitive->get_shader()->frag(input) };
                 surface->write_pixel(pixel.position, shaded_color);
             }) :
@@ -50,13 +61,28 @@ void Render2D::draw_frame() const
 std::vector<std::pair<std::shared_ptr<Primitive2D>, Matrix3x3d>> Render2D::get_draw_queue() const
 {
     scene_graph->set_root_transform(get_global_transform());
-    return scene_graph->get_draw_queue();
+    auto queue { scene_graph->get_draw_queue() };
+
+    if (debug_viewer->is_enabled())
+    {
+        auto debug_items { debug_viewer->get_debug_items() };
+        for (const auto &item : debug_items)
+        {
+            queue.emplace_back(std::make_pair(item, item->get_transform()));
+        }
+    }
+
+    return queue;
 }
 
 gfx::math::Matrix3x3d Render2D::get_global_transform() const
 {
     Matrix3x3d scale { utils::scale(viewport_scaling) };
     return scale;
+}
+
+void Render2D::add_debug_items() const
+{
 }
 
 std::shared_ptr<Circle2D> Render2D::create_circle(const Vec2d position, const double radius, const Color4 color, const double line_thickness) const
@@ -124,6 +150,19 @@ std::shared_ptr<Bitmap2D> Render2D::create_bitmap(const Vec2d position, const Ve
     bitmap->set_resolution(resolution);
 
     return bitmap;
+}
+
+std::shared_ptr<Text2D> Render2D::create_text(const Vec2d position, const std::string &text, const std::shared_ptr<gfx::text::FontTTF> font, const double font_size, const Color4 color) const
+{
+    auto text_primitive { std::make_shared<Text2D>() };
+
+    text_primitive->set_position(position);
+    text_primitive->set_font(font);
+    text_primitive->set_text(text);
+    text_primitive->set_font_size(font_size);
+    text_primitive->set_color(color);
+
+    return text_primitive;
 }
 
 bool Render2D::collides(const Vec2d point, const std::shared_ptr<Primitive2D> primitive) const

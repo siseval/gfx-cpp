@@ -37,6 +37,16 @@ public:
         return gfx::math::Vec2d { u, v };
     }
 
+    std::vector<gfx::math::Vec2d> get_corners() const
+    {
+        return {
+            origin,
+            origin + side_x,
+            origin + side_x + side_y,
+            origin + side_y
+        };
+    }
+
 };
 
 }

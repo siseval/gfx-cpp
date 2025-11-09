@@ -33,7 +33,7 @@ private:
 
     bool is_clockwise(std::vector<gfx::math::Vec2d> vertices);
 
-    std::shared_ptr<gfx::primitives::Polygon2D> poly;
+    std::shared_ptr<gfx::primitives::Text2D> text_item;
     int num_points { 0 };
 
 };

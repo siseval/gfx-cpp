@@ -100,6 +100,24 @@ std::vector<std::pair<std::shared_ptr<Primitive2D>, Matrix3x3d>> SceneGraph2D::g
     return draw_queue;
 }
 
+std::vector<std::pair<std::shared_ptr<Primitive2D>, gfx::math::Matrix3x3d>> SceneGraph2D::get_global_transforms()
+{
+    if (transforms_dirty())
+    {
+        update_global_transforms();
+    }
+
+    std::vector<std::pair<std::shared_ptr<Primitive2D>, Matrix3x3d>> transforms;
+    for (const auto& [id, node] : nodes)
+    {
+        if (node->primitive != nullptr)
+        {
+            transforms.push_back({ node->primitive, get_global_transform(node->primitive) });
+        }
+    }
+    return transforms;
+}
+
 void SceneGraph2D::add_item(const std::shared_ptr<Primitive2D> item, const std::shared_ptr<Primitive2D> parent)
 {
     auto new_node { std::make_shared<SceneNode2D>(item) };

@@ -24,6 +24,8 @@ void BoidsDemo::init()
     max_force = max_speed * 0.2;
     desired_separation = perception_radius * 0.5;
 
+    mouse_influence_radius = perception_radius * 2.0;
+
     for (int i = 0; i < num_boids; ++i)
     {
         spawn_boid();
@@ -203,14 +205,29 @@ Vec2d BoidsDemo::centering(const std::shared_ptr<Boid> boid)
     return Vec2d::zero();
 }
 
+Vec2d BoidsDemo::mouse_avoidance(const std::shared_ptr<Boid> boid)
+{
+    double distance { Vec2d::distance(boid->position, mouse_position) };
+    if (distance < mouse_influence_radius && distance > 0)
+    {
+        Vec2d diff { boid->position - mouse_position };
+        diff = diff.normalize() / distance;
+        Vec2d desired { diff.normalize() * max_speed };
+        Vec2d steering { desired - boid->velocity };
+        return steering.limit(max_force);
+    }
+    return Vec2d::zero();
+}
+
 void BoidsDemo::apply_behaviors(const std::shared_ptr<Boid> boid, const std::vector<std::shared_ptr<Boid>> &neighbors, const double dt)
 {
     Vec2d separate = separation(boid, neighbors) * separation_weight;
     Vec2d align = alignment(boid, neighbors) * alignment_weight;
     Vec2d cohere = cohesion(boid, neighbors) * cohesion_weight;
     Vec2d center = centering(boid) * centering_weight;
+    Vec2d mouse_avoid { mouse_active ? mouse_avoidance(boid) * mouse_avoid_weigth : Vec2d::zero() };
 
-    boid->velocity += (align + cohere + separate + center) * dt;
+    boid->velocity += (align + cohere + separate + center + mouse_avoid) * dt;
 
     // wrap_position(boid);
 }
@@ -248,6 +265,22 @@ void BoidsDemo::render_frame(const double dt)
     render_boids();
 
     renderer->draw_frame();
+}
+
+void BoidsDemo::report_mouse(const demos::common::core::MouseEvent event)
+{
+    if (event.type == demos::common::core::MouseEventType::MOVE)
+    {
+        Vec2i resolution { renderer->get_resolution() };
+        mouse_position = Vec2d {
+            event.position.x * static_cast<double>(resolution.x),
+            event.position.y * static_cast<double>(resolution.y)
+        };
+    }
+    else if (event.type == demos::common::core::MouseEventType::LEFT_DOWN)
+    {
+        mouse_active = !mouse_active;
+    }
 }
 
 void BoidsDemo::handle_input(const int input)
