@@ -69,9 +69,9 @@ private:
 
     bool enabled = false;
 
-    bool show_aabb = true;
-    bool show_obb = true;
-    bool show_anchor = true;
+    bool show_aabb = false;
+    bool show_obb = false;
+    bool show_anchor = false;
 
     bool show_fps = true;
     bool show_num_items = true;

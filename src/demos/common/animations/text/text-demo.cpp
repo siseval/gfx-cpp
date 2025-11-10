@@ -6,10 +6,28 @@
 namespace demos::common::animations::text
 {
 
+using namespace gfx::core;
 using namespace gfx::core::types;
 using namespace gfx::math;
 using namespace demos::common::core;
 
+class TextShader : public gfx::core::Shader2D
+{
+    Color4 frag(const ShaderInput2D &input) const override
+    {
+        double t { input.t };
+        Vec2d uv { input.uv };
+
+        double diagonal { uv.x + uv.y + t };
+        diagonal = std::fmod(diagonal, std::numbers::pi);
+        
+        double r { std::sin(diagonal) };
+        double g { 1 - std::sin(diagonal) };
+        double b { 0.5 };
+
+        return Color4(r, g, b, 1.0);
+    }
+};
 
 
 void TextDemo::init()
@@ -25,7 +43,7 @@ void TextDemo::init()
         throw std::runtime_error("Failed to load font.");
     }
 
-    std::string text { "vro" };
+    std::string text { "helo vro\n    <3" };
     text_item = renderer->create_text(
         center,
         text,
@@ -33,6 +51,8 @@ void TextDemo::init()
         14.0,
         Color4(1.0, 0.0, 0.0, 1.0)
     );
+    text_item->set_shader(std::make_shared<TextShader>());
+    text_item->set_use_shader(true);
     text_item->set_scale(3.0);
     text_item->set_anchor(0.5, 0.5);
     renderer->add_item(text_item);
@@ -54,19 +74,20 @@ void TextDemo::render_frame(const double dt)
 {
     double t0 { utils::time_us() };
     double time_ms { t0 / 1000.0 };
+    double t { time_ms / 1000.0 };
 
     double scale = 3.0 + 2.0 * std::sin(time_ms * 0.002);
 
     Color4 color {
-        0.5 + 0.5 * std::sin(time_ms * 0.001),
-        0.5 + 0.5 * std::sin(time_ms * 0.001 + 2.0),
-        0.5 + 0.5 * std::sin(time_ms * 0.001 + 4.0),
+        0.5 + 0.5 * std::sin(t),
+        0.5 + 0.5 * std::sin(t + 2.0),
+        0.5 + 0.5 * std::sin(t + 4.0),
         1.0
     };
 
     text_item->set_scale(scale);
     text_item->set_color(color);
-    text_item->set_rotation(time_ms * 0.001);
+    text_item->set_rotation_degrees(std::sin(t * 3.0) * 5.0);
 
     renderer->draw_frame();
 

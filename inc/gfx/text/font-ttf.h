@@ -1,6 +1,7 @@
 #ifndef FONT_TTF_H
 #define FONT_TTF_H
 
+#include <string>
 #include <vector>
 #include <unordered_map>
 #include <gfx/text/font.h>
@@ -43,7 +44,6 @@ public:
         : units_per_em(units_per_em), ascent(ascent), descent(descent), line_gap(line_gap), num_glyphs(num_glyphs) {}
 
     std::shared_ptr<GlyphTTF> get_glyph(const uint32_t codepoint) const;
-    std::shared_ptr<GlyphTTF> get_glyph(const char character) const;
 
     std::vector<ContourEdge> get_glyph_edges(const uint32_t codepoint) const;
 
@@ -83,6 +83,7 @@ public:
 private:
 
     std::vector<ContourEdge> flatten_glyph(const std::shared_ptr<GlyphTTF> glyph) const;
+    bool decode_utf8(const std::string &s, size_t pos, uint32_t &out_codepoint, size_t &bytes) const;
 
     int units_per_em;
     double ascent;

@@ -7,6 +7,7 @@ namespace gfx::text
 using namespace gfx::math;
 using namespace gfx::geometry;
 
+
 std::shared_ptr<GlyphTTF> FontTTF::get_glyph(const uint32_t codepoint) const
 {
     auto it = glyphs.find(codepoint);
@@ -15,11 +16,6 @@ std::shared_ptr<GlyphTTF> FontTTF::get_glyph(const uint32_t codepoint) const
         return it->second;
     }
     return nullptr;
-}
-
-std::shared_ptr<GlyphTTF> FontTTF::get_glyph(const char character) const
-{
-    return get_glyph(static_cast<uint32_t>(static_cast<uint8_t>(character)));
 }
 
 std::vector<ContourEdge> FontTTF::get_glyph_edges(const uint32_t codepoint) const
