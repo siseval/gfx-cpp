@@ -17,7 +17,7 @@ public:
     GLFWDemoPlayer() : demos::common::core::DemoPlayer()
     {
         auto surface = std::make_shared<gfx::surfaces::GLFWRenderSurface>(gfx::math::Vec2i { 320, 200 });
-        renderer = std::make_shared<gfx::core::Render2D>(surface, gfx::math::Vec2d{ 1, 1 }, "/Users/sigurdsevaldrud/documents/code/c++/gfx/assets/fonts/ARIALBD.ttf");
+        renderer = std::make_shared<gfx::core::Render2D>(surface, gfx::math::Vec2d{ 1, 1 }, "/Users/sigurdsevaldrud/documents/code/c++/gfx/assets/fonts/EVA-Matisse_Classic.ttf");
         glfwSetWindowUserPointer(surface->get_window(), this);
 
         glfwSetInputMode(surface->get_window(), GLFW_STICKY_KEYS, GLFW_TRUE);

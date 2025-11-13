@@ -35,7 +35,41 @@ static uint32_t read_u32(const std::uint8_t* data)
            static_cast<uint32_t>(data[3]);
 }
 
-std::shared_ptr<FontTTF> FontManagerTTF::load_from_file(const std::string &path)
+void FontManagerTTF::load_font_directory(const std::filesystem::path &path)
+{
+    std::filesystem::path dir_path = path;
+
+    if (dir_path.empty())
+    {
+        dir_path = font_directory_path;
+    }
+
+    if (!std::filesystem::exists(dir_path) || !std::filesystem::is_directory(dir_path))
+    {
+        throw std::runtime_error("Font directory does not exist: " + dir_path.string());
+        return;
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(dir_path))
+    {
+        if (entry.is_regular_file())
+        {
+            std::string extension { entry.path().extension().string() };
+            if (extension == ".ttf" || extension == ".TTF")
+            {
+                try
+                {
+                    load_from_file(entry.path().string(), entry.path().stem().string());
+                }
+                catch (const std::exception &e)
+                {
+                }
+            }
+        }
+    }
+}
+
+std::shared_ptr<FontTTF> FontManagerTTF::load_from_file(const std::string &path, const std::string &name)
 {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open())
@@ -58,10 +92,10 @@ std::shared_ptr<FontTTF> FontManagerTTF::load_from_file(const std::string &path)
         return nullptr;
     }
 
-    return load_from_memory(buffer, size);
+    return load_from_memory(buffer, size, name.empty() ? path : name);
 }
 
-std::shared_ptr<FontTTF> FontManagerTTF::load_from_memory(const uint8_t* data, const std::size_t size)
+std::shared_ptr<FontTTF> FontManagerTTF::load_from_memory(const uint8_t* data, const std::size_t size, const std::string &name)
 {
     if (size < 12)
     {
@@ -341,7 +375,8 @@ std::shared_ptr<FontTTF> FontManagerTTF::load_from_memory(const uint8_t* data, c
         }
     }
 
-    loaded_fonts.push_back(font);
+    font->set_name(name);
+    loaded_fonts[name] = font;
 
     return font;
 }

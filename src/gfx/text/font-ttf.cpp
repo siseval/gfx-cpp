@@ -34,6 +34,11 @@ std::vector<ContourEdge> FontTTF::get_glyph_edges(const uint32_t codepoint) cons
 std::vector<ContourEdge> FontTTF::flatten_glyph(const std::shared_ptr<GlyphTTF> glyph) const
 {
     std::vector<ContourEdge> edges;
+    if (!glyph)
+    {
+        return edges;
+    }
+
     for (const auto &contour : glyph->contours)
     {
         std::vector<std::pair<Vec2d, bool>> points_on_off_curve;

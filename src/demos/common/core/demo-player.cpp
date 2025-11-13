@@ -21,9 +21,9 @@ using namespace demos::common;
 
 void DemoPlayer::init()
 {
+    demos.emplace_back(std::make_shared<star::StarDemo>(renderer));
     demos.emplace_back(std::make_shared<text::TextDemo>(renderer));
     // demos.emplace_back(std::make_shared<video::VideoDemo>(renderer));
-    demos.emplace_back(std::make_shared<star::StarDemo>(renderer));
     demos.emplace_back(std::make_shared<snake::SnakeDemo>(renderer));
     demos.emplace_back(std::make_shared<boids::BoidsDemo>(renderer));
     demos.emplace_back(std::make_shared<fractal::FractalDemo>(renderer));
@@ -31,7 +31,7 @@ void DemoPlayer::init()
     demos.emplace_back(std::make_shared<fireworks::FireworksDemo>(renderer));
     demos.emplace_back(std::make_shared<space::SpaceDemo>(renderer));
 
-    resize(get_screen_size());
+    cycle_demo(0);
 }
 
 void DemoPlayer::run()
@@ -128,6 +128,12 @@ void DemoPlayer::cycle_demo(const int direction)
     demos[current_demo]->end();
     current_demo = (current_demo + direction + demos.size()) % demos.size();
     renderer->clear_items();
+
+    if (demos[current_demo]->get_clear_color() != renderer->get_clear_color())
+    {
+        renderer->set_clear_color(demos[current_demo]->get_clear_color());
+    }
+
     demos[current_demo]->init();
 }
 

@@ -60,6 +60,7 @@ public:
             static_cast<uint8_t>(std::min(255, a + other.a))
         ); 
     }
+
     Color4 operator*(const double scalar) const 
     { 
         return Color4(
@@ -69,6 +70,7 @@ public:
             static_cast<uint8_t>(std::clamp(static_cast<int>(a * scalar), 0, 255))
         ); 
     }
+
     Color4 operator*(const Color4 &other) const 
     { 
         return Color4(
@@ -100,6 +102,11 @@ public:
         );
     }
 
+    inline const static Color4 black() { return Color4(0, 0, 0, 255); }
+    inline const static Color4 white() { return Color4(255, 255, 255, 255); }
+    inline const static Color4 red()   { return Color4(255, 0, 0, 255); }
+    inline const static Color4 green() { return Color4(0, 255, 0, 255); }
+    inline const static Color4 blue()  { return Color4(0, 0, 255, 255); }
 };
 
 

@@ -37,10 +37,13 @@ public:
     inline void set_resolution(const gfx::math::Vec2i new_resolution) { resolution = new_resolution; }
     inline gfx::math::Vec2i get_resolution() const { return resolution; }
 
+    inline virtual void set_clear_color(const types::Color4 color) { clear_color = color; }
+    inline virtual types::Color4 get_clear_color() const { return clear_color; }
+
 protected:
 
     gfx::math::Vec2i resolution;
-    gfx::core::types::Color4 clear_color { 0, 0, 0, 255 };
+    gfx::core::types::Color4 clear_color = gfx::core::types::Color4(0.2, 0.2, 0.2, 1.0);
 };
 
 }

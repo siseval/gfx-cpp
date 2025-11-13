@@ -120,7 +120,7 @@ void DebugViewer::populate(const DebugInfo &info)
             return;
         }
 
-        double text_scale = (font_size / info.resolution.y) * 2.0;
+        double text_scale = (info.resolution.y / font_size) * 0.08;
 
         if (show_fps)
         {
@@ -131,8 +131,7 @@ void DebugViewer::populate(const DebugInfo &info)
                 fps_text_item->set_font_size(font_size);
                 fps_text_item->set_color(text_color);
                 fps_text_item->set_scale(text_scale);
-                fps_text_item->set_anchor(0.0, 0.5);
-                fps_text_item->set_position(5.0, font_size * text_scale);
+                fps_text_item->set_position(5.0, 5.0);
             }
             fps_text_item->set_text("FPS: " + std::to_string(static_cast<int>(info.fps)));
         }
@@ -145,8 +144,7 @@ void DebugViewer::populate(const DebugInfo &info)
                 num_items_text_item->set_font_size(font_size);
                 num_items_text_item->set_color(text_color);
                 num_items_text_item->set_scale(text_scale);
-                num_items_text_item->set_anchor(0.0, 0.5);
-                num_items_text_item->set_position(5.0, font_size * text_scale * (show_fps ? 2.0 : 1.0));
+                num_items_text_item->set_position(5.0, font_size * text_scale + 5.0);
             }
             num_items_text_item->set_text("Items: " + std::to_string(info.num_items));
         }

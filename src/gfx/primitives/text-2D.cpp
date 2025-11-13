@@ -16,7 +16,7 @@ Box2d Text2D::get_geometry_size() const
     double ascent = font->get_ascent() * scale;
     double line_gap = font->get_line_gap() * scale;
 
-    double line_height = (line_gap > 0.0) ? font_size + line_gap : font_size * 1.2;
+    double line_height = (line_gap > 0.0) ? font_size + line_gap : font_size * line_height_multiplier;
 
     Box2d bounds {
         Vec2d(std::numeric_limits<double>::max()),
@@ -167,10 +167,17 @@ void Text2D::rasterize(const Matrix3x3d &transform, const std::function<void(con
     double ascent = font->get_ascent() * scale;
     double line_gap = font->get_line_gap() * scale;
 
-    double line_height = (line_gap > 0.0) ? font_size + line_gap : font_size * 1.2;
+    double line_height = (line_gap > 0.0) ? 
+        font_size + line_gap : 
+        font_size * line_height_multiplier;
 
-    Vec2d pen { 0.0, 0.0 };
-    Vec2d min { std::numeric_limits<double>::max(), std::numeric_limits<double>::max() };
+    Vec2d pen { Vec2d::zero() };
+
+    Vec2d min { Vec2d(std::numeric_limits<double>::max()) };
+    Vec2d max { Vec2d(std::numeric_limits<double>::lowest()) };
+
+    std::vector<double> line_widths { 0.0 };
+    int line_index = 0;
 
     size_t i = 0;
     while (i < text.size())
@@ -189,6 +196,8 @@ void Text2D::rasterize(const Matrix3x3d &transform, const std::function<void(con
             pen.x = 0.0;
             pen.y += line_height;
             i += bytes;
+            line_index++;
+            line_widths.push_back(0.0);
             continue;
         }
 
@@ -198,6 +207,7 @@ void Text2D::rasterize(const Matrix3x3d &transform, const std::function<void(con
             uint32_t prev_cp;
             decode_utf8(text, i - 1, prev_cp, prev_bytes);
             pen.x += font->get_kerning(prev_cp, codepoint) * scale;
+            line_widths[line_index] = pen.x;
         }
 
         auto edges = font->get_glyph_edges(codepoint);
@@ -212,13 +222,18 @@ void Text2D::rasterize(const Matrix3x3d &transform, const std::function<void(con
 
             min.x = std::min({min.x, v0.x, v1.x});
             min.y = std::min({min.y, v0.y, v1.y});
+
+            max.x = std::max({max.x, v0.x, v1.x});
+            max.y = std::max({max.y, v0.y, v1.y});
         }
 
         pen.x += font->get_glyph_advance(codepoint) * scale;
+        line_widths[line_index] = pen.x;
         i += bytes;
     }
 
     pen = Vec2d { 0.0, 0.0 };
+    line_index = 0;
     i = 0;
     while (i < text.size())
     {
@@ -236,6 +251,7 @@ void Text2D::rasterize(const Matrix3x3d &transform, const std::function<void(con
             pen.x = 0.0;
             pen.y += line_height;
             i += bytes;
+            line_index++;
             continue;
         }
 
@@ -247,14 +263,23 @@ void Text2D::rasterize(const Matrix3x3d &transform, const std::function<void(con
             pen.x += font->get_kerning(prev_cp, codepoint) * scale;
         }
 
+        double offset_x { [&] { switch (alignment) 
+            {
+                case TextAlignment::LEFT: return 0.0;
+                case TextAlignment::RIGHT: return max.x - line_widths[line_index];
+                case TextAlignment::CENTER: return (max.x - line_widths[line_index]) / 2.0;
+            }
+            std::unreachable();
+        }()};
+
         auto edges = font->get_glyph_edges(codepoint);
         for (auto &edge : edges)
         {
             edge.v0 = edge.v0 * scale;
             edge.v1 = edge.v1 * scale;
 
-            edge.v0.x += pen.x - min.x;
-            edge.v1.x += pen.x - min.x;
+            edge.v0.x += pen.x - min.x + offset_x;
+            edge.v1.x += pen.x - min.x + offset_x;
 
             edge.v0.y = -edge.v0.y + ascent + pen.y - min.y;
             edge.v1.y = -edge.v1.y + ascent + pen.y - min.y;

@@ -29,12 +29,17 @@ public:
         };
     }
 
+    inline gfx::core::types::Color4 get_clear_color() const override 
+    { 
+        return gfx::core::types::Color4(0.0, 0.0, 0.0, 1.0); 
+    };
+
 private:
 
     bool is_clockwise(std::vector<gfx::math::Vec2d> vertices);
 
     std::shared_ptr<gfx::primitives::Text2D> text_item;
-    int num_points { 0 };
+    int num_points = 0;
 
 };
 

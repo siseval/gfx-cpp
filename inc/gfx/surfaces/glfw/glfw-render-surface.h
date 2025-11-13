@@ -45,6 +45,17 @@ public:
         }
     }
 
+    inline void set_clear_color(const gfx::core::types::Color4 color) override
+    {
+        clear_color = color;
+        glClearColor(
+            clear_color.r_double(),
+            clear_color.g_double(),
+            clear_color.b_double(),
+            clear_color.a_double()
+        );
+    }
+
 private:
 
     void render_multithreaded();

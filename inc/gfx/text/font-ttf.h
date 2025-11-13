@@ -77,6 +77,9 @@ public:
     double get_line_height() const { return ascent - descent + line_gap; }
     double get_units_per_em() const { return units_per_em; }
 
+    inline void set_name(const std::string &n) { name = n; }
+    inline std::string get_name() const { return name; }
+
     void set_glyphs(const std::unordered_map<uint32_t, std::shared_ptr<GlyphTTF>> &g) { glyphs = g; }
     std::unordered_map<uint32_t, std::shared_ptr<GlyphTTF>> get_glyphs() const { return glyphs; }
 
@@ -84,6 +87,8 @@ private:
 
     std::vector<ContourEdge> flatten_glyph(const std::shared_ptr<GlyphTTF> glyph) const;
     bool decode_utf8(const std::string &s, size_t pos, uint32_t &out_codepoint, size_t &bytes) const;
+
+    std::string name;
 
     int units_per_em;
     double ascent;

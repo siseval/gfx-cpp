@@ -59,8 +59,10 @@ public:
     }
 
     inline void set_last_frame_us(const double us) { last_frame_us = us; }
+    inline virtual gfx::core::types::Color4 get_clear_color() const { return gfx::core::types::Color4(0.2, 0.2, 0.2); }
 
 protected:
+
 
     std::shared_ptr<gfx::core::Render2D> renderer;
     double last_frame_us = 0.0;
