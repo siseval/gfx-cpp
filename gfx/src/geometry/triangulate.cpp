@@ -103,57 +103,12 @@ namespace gfx
         return clockwise ? cross > 0 : cross < 0;
     }
 
-    bool Triangulate::are_collinear(const Vec2i a, const Vec2i b, const Vec2i c)
-    {
-        const Vec2l ab { b - a };
-        const Vec2l bc { c - b };
-
-        return Vec2l::cross(ab, bc) == 0;
-    }
-
     bool Triangulate::are_collinear(const Vec2d a, const Vec2d b, const Vec2d c)
     {
         const Vec2d ab { b - a };
         const Vec2d bc { c - b };
 
         return std::abs(Vec2d::cross(ab, bc)) <= 1e-9;
-    }
-
-    std::vector<size_t> Triangulate::get_non_collinear_indices(const std::vector<Vec2i>& vertices)
-    {
-        std::vector<size_t> unique_indices;
-        unique_indices.reserve(vertices.size());
-
-        for (size_t i = 0; i < vertices.size(); ++i)
-        {
-            const size_t b_index { i + 1 < vertices.size() ? i + 1 : i + 1 - vertices.size() };
-            if (vertices[i] == vertices[b_index])
-            {
-                continue;
-            }
-            unique_indices.push_back(i);
-        }
-
-        std::vector<size_t> non_collinear_indices;
-        non_collinear_indices.reserve(unique_indices.size());
-
-        for (size_t i = 0; i < unique_indices.size(); ++i)
-        {
-            const size_t b_index { i + 1 < unique_indices.size() ? i + 1 : i + 1 - unique_indices.size() };
-            const size_t c_index { i + 2 < unique_indices.size() ? i + 2 : i + 2 - unique_indices.size() };
-
-            if (are_collinear(
-                vertices[unique_indices[i]],
-                vertices[unique_indices[b_index]],
-                vertices[unique_indices[c_index]]
-            ))
-            {
-                continue;
-            }
-            non_collinear_indices.push_back(unique_indices[b_index]);
-        }
-
-        return non_collinear_indices;
     }
 
     std::vector<Vec2d> Triangulate::trimmed_vertices(const std::vector<Vec2d>& vertices)
