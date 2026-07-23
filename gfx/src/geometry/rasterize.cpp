@@ -43,7 +43,6 @@ namespace gfx
         const bool tl2 = is_top_left(triangle.v0, triangle.v1);
 
         const double area { a * triangle.v0.x + b * triangle.v0.y + c };
-        const double inv_area { 1.0f / area };
 
         if (area == 0.0)
         {

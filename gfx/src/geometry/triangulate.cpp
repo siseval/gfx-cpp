@@ -1,5 +1,7 @@
 #include "gfx/geometry/triangulate.h"
 
+#include <numeric>
+
 #include "gfx/geometry/types/triangle.h"
 #include "gfx/math/box2.h"
 
@@ -7,16 +9,15 @@ namespace gfx
 {
     static constexpr int FRACTIONAL_BITS { 8 };
 
-    std::vector<Triangle<double>> Triangulate::triangulate_polygon(const Polygon<double>& component)
+    std::vector<Triangle<double>> Triangulate::triangulate_polygon(const Polygon<double>& polygon)
     {
-        auto& merged_contour = component.holes.size() > 0 ?
-                               Polygon<double>::Contour { merge_holes(component.contour, component.holes) } :
-                               component.contour;
+        const Polygon<double>::Contour merged_contour = merge_holes(polygon);
 
         const std::vector<Vec2d>& floating_point_vertices { merged_contour.vertices };
 
         std::vector<Vec2i> fixed_point_vertices;
-        fixed_point_vertices.reserve(component.contour.vertices.size());
+        fixed_point_vertices.reserve(floating_point_vertices.size());
+
         for (size_t i = 0; i < floating_point_vertices.size(); ++i)
         {
             fixed_point_vertices.push_back(
@@ -27,15 +28,15 @@ namespace gfx
             );
         }
 
-        const bool clockwise { merged_contour.clockwise };
-
         std::vector<Triangle<double>> triangles;
         if (fixed_point_vertices.size() < 3)
         {
             return triangles;
         }
 
-        std::vector<size_t> indices { get_non_collinear_indices(fixed_point_vertices) };
+        std::vector<size_t> indices(fixed_point_vertices.size());
+        std::iota(indices.begin(), indices.end(), 0);
+
         if (indices.empty())
         {
             return {};
@@ -44,7 +45,7 @@ namespace gfx
         while (indices.size() > 3)
         {
             bool ear_found = false;
-            for (int i = 0; i < indices.size(); ++i)
+            for (size_t i = 0; i < indices.size(); ++i)
             {
                 const size_t prev_index { indices[i == 0 ? indices.size() - 1 : i - 1] };
                 const size_t cur_index { indices[i] };
@@ -69,7 +70,7 @@ namespace gfx
                     prev_index,
                     cur_index,
                     next_index,
-                    clockwise
+                    merged_contour.clockwise
                 ))
                 {
                     triangles.push_back(floating_point_candidate);
@@ -80,8 +81,7 @@ namespace gfx
             }
             if (!ear_found)
             {
-                triangles.clear();
-                return triangles;
+                return {};
             }
         }
 
@@ -98,15 +98,25 @@ namespace gfx
     {
         const Vec2d ab { triangle.v1 - triangle.v0 };
         const Vec2d ac { triangle.v2 - triangle.v0 };
-        const double cross { ab.x * ac.y - ab.y * ac.x };
+
+        const double cross { Vec2d::cross(ab, ac) };
         return clockwise ? cross > 0 : cross < 0;
     }
 
     bool Triangulate::are_collinear(const Vec2i a, const Vec2i b, const Vec2i c)
     {
+        const Vec2l ab { b - a };
+        const Vec2l bc { c - b };
+
+        return Vec2l::cross(ab, bc) == 0;
+    }
+
+    bool Triangulate::are_collinear(const Vec2d a, const Vec2d b, const Vec2d c)
+    {
         const Vec2d ab { b - a };
         const Vec2d bc { c - b };
-        return Vec2d::cross(ab, bc) == 0;
+
+        return std::abs(Vec2d::cross(ab, bc)) <= 1e-9;
     }
 
     std::vector<size_t> Triangulate::get_non_collinear_indices(const std::vector<Vec2i>& vertices)
@@ -146,6 +156,40 @@ namespace gfx
         return non_collinear_indices;
     }
 
+    std::vector<Vec2d> Triangulate::trimmed_vertices(const std::vector<Vec2d>& vertices)
+    {
+        std::vector<Vec2d> unique_vertices;
+        unique_vertices.reserve(vertices.size());
+
+        for (size_t i = 0; i < vertices.size(); ++i)
+        {
+            const size_t b_index { i + 1 < vertices.size() ? i + 1 : i + 1 - vertices.size() };
+            const Vec2d distance { vertices[i] - vertices[b_index] };
+            if (std::abs(distance.x) <= 1e-9 && std::abs(distance.y) <= 1e-9)
+            {
+                continue;
+            }
+            unique_vertices.push_back(vertices[b_index]);
+        }
+
+        std::vector<Vec2d> non_collinear_vertices;
+        non_collinear_vertices.reserve(unique_vertices.size());
+
+        for (size_t i = 0; i < unique_vertices.size(); ++i)
+        {
+            const size_t b_index { i + 1 < unique_vertices.size() ? i + 1 : i + 1 - unique_vertices.size() };
+            const size_t c_index { i + 2 < unique_vertices.size() ? i + 2 : i + 2 - unique_vertices.size() };
+
+            if (are_collinear(unique_vertices[i], unique_vertices[b_index], unique_vertices[c_index]))
+            {
+                continue;
+            }
+            non_collinear_vertices.push_back(unique_vertices[b_index]);
+        }
+
+        return non_collinear_vertices;
+    }
+
     bool Triangulate::point_in_triangle(const Vec2i p, const Triangle<int> triangle)
     {
         auto sign {
@@ -181,7 +225,8 @@ namespace gfx
 
         for (int i = 0; i < indices.size(); ++i)
         {
-            if (i == i0 || i == i1 || i == i2)
+            if (indices[i] == static_cast<size_t>(i0) || indices[i] == static_cast<size_t>(i1) || indices[i] ==
+                static_cast<size_t>(i2))
             {
                 continue;
             }
@@ -211,12 +256,12 @@ namespace gfx
         return true;
     }
 
-    Polygon<double>::Contour Triangulate::merge_holes(
-        const Polygon<double>::Contour& contour,
-        const std::vector<Polygon<double>::Contour>& holes
-    )
+    Polygon<double>::Contour Triangulate::merge_holes(const Polygon<double>& polygon)
     {
-        std::vector<Vec2d> merged = contour.vertices;
+        const auto& contour = polygon.contour;
+        const auto& holes = polygon.holes;
+
+        std::vector<Vec2d> merged = trimmed_vertices(contour.vertices);
 
         for (const auto& hole : holes)
         {
@@ -225,14 +270,13 @@ namespace gfx
                 continue;
             }
 
-            std::vector<Vec2d> reversed;
-            auto& hole_vertices = hole.clockwise == contour.clockwise ?
-                                  (reversed = { hole.vertices.rbegin(), hole.vertices.rend() }, reversed) :
-                                  hole.vertices;
+            auto hole_vertices = hole.clockwise == contour.clockwise ?
+                                 trimmed_vertices({ hole.vertices.rbegin(), hole.vertices.rend() }) :
+                                 trimmed_vertices(hole.vertices);
 
-            int hole_index = 0;
+            size_t hole_index = 0;
 
-            for (int i = 1; i < hole_vertices.size(); ++i)
+            for (size_t i = 1; i < hole_vertices.size(); ++i)
             {
                 if (hole_vertices[i].x > hole_vertices[hole_index].x)
                 {
@@ -243,10 +287,11 @@ namespace gfx
             Vec2d bridge_start = hole_vertices[hole_index];
 
             double best_x = std::numeric_limits<double>::infinity();
-            int best_edge = -1;
+            static constexpr size_t INVALID_EDGE { std::numeric_limits<size_t>::max() };
+            size_t best_edge = INVALID_EDGE;
             Vec2d best_point;
 
-            for (int i = 0; i < merged.size(); ++i)
+            for (size_t i = 0; i < merged.size(); ++i)
             {
                 const Vec2d a = merged[i];
                 const Vec2d b = merged[(i + 1) % merged.size()];
@@ -263,7 +308,7 @@ namespace gfx
                 }
             }
 
-            if (best_edge == -1)
+            if (best_edge == INVALID_EDGE)
             {
                 continue;
             }

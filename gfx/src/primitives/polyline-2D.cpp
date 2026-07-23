@@ -257,7 +257,7 @@ namespace gfx
 
             vertices.push_back(Transform2D::transform_point(vertex, transform));
         }
-        Vec2d transformed_pos = Transform2D::transform_point(pos, transform);
+        const Vec2d transformed_pos = Transform2D::transform_point(pos, transform);
 
         for (int i = 0; i < vertices.size() - 1; ++i)
         {

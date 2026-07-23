@@ -314,15 +314,15 @@ namespace gfx
 
     static void rasterize_edge(const Vec2d start, const Vec2d end, std::vector<Vec2i>& pixels)
     {
-        const double line_extent { 1.0 };
+        const double line_extent { 0.5 };
         const Vec2d normal { (end - start).normal().normalize() };
 
         const Vec2d offset { normal * line_extent };
 
-        Vec2d v0 { start + offset };
-        Vec2d v1 { start - offset };
-        Vec2d v2 { end + offset };
-        Vec2d v3 { end - offset };
+        const Vec2d v0 { start + offset };
+        const Vec2d v1 { start - offset };
+        const Vec2d v2 { end + offset };
+        const Vec2d v3 { end - offset };
 
         Rasterize::rasterize_filled_triangle({ v0, v1, v2 }, pixels);
         Rasterize::rasterize_filled_triangle({ v1, v3, v2 }, pixels);
@@ -372,9 +372,17 @@ namespace gfx
         for (const auto& polygon : polygons)
         {
             const auto& triangles = Triangulate::triangulate_polygon(polygon);
+            
+            for (int i = 0; i < polygon.contour.vertices.size() - 1; ++i)
+            {
+                // rasterize_edge(polygon.contour.vertices[i], polygon.contour.vertices[i + 1], pixels);
+            }
 
             for (const auto& tri : triangles)
             {
+                // rasterize_edge(tri.v0, tri.v1, pixels);
+                // rasterize_edge(tri.v1, tri.v2, pixels);
+                // rasterize_edge(tri.v2, tri.v0, pixels);
                 Rasterize::rasterize_filled_triangle(tri, pixels);
             }
         }

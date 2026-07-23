@@ -80,7 +80,7 @@ namespace demos
         text_item = render2D->create_text(
             center,
             ".abcdefgh\nijklmno\npqrstuvwxyz",
-            font_1,
+            font_2,
             font_size,
             Color4::white()
         );
