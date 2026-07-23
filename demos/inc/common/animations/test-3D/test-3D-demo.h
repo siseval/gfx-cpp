@@ -11,97 +11,93 @@
 
 namespace demos
 {
-
-class Test3DDemo : public GfxDemo
-{
-
-public:
-
-    Test3DDemo(const std::shared_ptr<gfx::RenderEngine> renderer, const std::shared_ptr<gfx::DebugViewer> debug_viewer = nullptr)
-        : GfxDemo(renderer, debug_viewer) {}
-
-    void init() override;
-    void render_frame(double dt) override;
-    void end() override;
-    void handle_char(int input) override;
-    void report_key(KeyEvent event) override;
-    void report_mouse(MouseEvent event) override;
-
-    std::vector<std::string> debug_text() override
+    class Test3DDemo : public GfxDemo
     {
-        return {
+    public:
+
+        Test3DDemo(const std::shared_ptr<gfx::RenderEngine> renderer, const std::shared_ptr<gfx::DebugViewer> debug_viewer = nullptr)
+            : GfxDemo(renderer, debug_viewer)
+        {
+        }
+
+        void init() override;
+        void render_frame(double dt) override;
+        void end() override;
+        void handle_char(int input) override;
+        void report_key(KeyEvent event) override;
+        void report_mouse(MouseEvent event) override;
+
+        std::vector<std::string> debug_text() override
+        {
+            return {
+            };
+        }
+
+        struct Ripple
+        {
+            gfx::Vec2d center;
+            double start_time;
         };
-    }
 
-struct Ripple
-{
-    gfx::Vec2d center;
-    double start_time;
-};
+        class WaterSurfaceShader : public gfx::FragmentShader
+        {
+        public:
 
-class WaterSurfaceShader : public gfx::FragmentShader
-{
+            gfx::Vec2d mouse_uv;
+            std::vector<std::shared_ptr<Ripple>> ripples;
+            double ripple_lifetime_sec = 5.0;
+            gfx::Color4 base_color = gfx::Color4(0.0, 0.3, 0.5);
 
-public:
+            mutable gfx::Color4 prev_color;
 
-    gfx::Vec2d mouse_uv;
-    std::vector<std::shared_ptr<Ripple>> ripples;
-    double ripple_lifetime_sec = 5.0;
-    gfx::Color4 base_color = gfx::Color4(0.0, 0.3, 0.5);
+            gfx::Color4 frag(const Input& input, const Uniforms& uniforms) const override;
+        };
 
-    mutable gfx::Color4 prev_color;
+    private:
 
-    gfx::Color4 frag(const Input &input, const Uniforms &uniforms) const override;
-};
+        void update_camera(double dt);
+        void set_camera_velocity(gfx::Vec3d velocity);
+        void camera_movement(Key key, double dt);
+        void poll_held_keys(double dt);
 
+        std::shared_ptr<gfx::Cuboid3D> cube;
+        std::shared_ptr<gfx::Sphere3D> sphere;
+        std::shared_ptr<gfx::Plane3D> plane;
+        std::shared_ptr<gfx::Cone3D> cone;
+        std::shared_ptr<gfx::Polygon3D> teapot;
 
-private:
+        void spawn_ripple(gfx::Vec2d position) const;
+        gfx::Vec2d get_random_position() const;
+        void update_ripples(double dt) const;
 
-    void update_camera(double dt);
-    void set_camera_velocity(gfx::Vec3d velocity);
-    void camera_movement(Key key, double dt);
-    void poll_held_keys(double dt);
-
-    std::shared_ptr<gfx::Cuboid3D> cube;
-    std::shared_ptr<gfx::Sphere3D> sphere;
-    std::shared_ptr<gfx::Plane3D> plane;
-    std::shared_ptr<gfx::Cone3D> cone;
-    std::shared_ptr<gfx::Polygon3D> teapot;
-
-    void spawn_ripple(gfx::Vec2d position) const;
-    gfx::Vec2d get_random_position() const;
-    void update_ripples(double dt) const;
-
-    std::shared_ptr<WaterSurfaceShader> water_shader;
-    std::shared_ptr<gfx::Plane3D> quad;
-    bool random_spawn = true;
-    double random_spawn_interval_sec = 0.2;
-    double random_spawn_timer = 0.0;
+        std::shared_ptr<WaterSurfaceShader> water_shader;
+        std::shared_ptr<gfx::Plane3D> quad;
+        bool random_spawn = true;
+        double random_spawn_interval_sec = 0.2;
+        double random_spawn_timer = 0.0;
 
 
-    std::vector<std::shared_ptr<gfx::Primitive3D>> scene_items;
+        std::vector<std::shared_ptr<gfx::Primitive3D>> scene_items;
 
-    std::shared_ptr<gfx::Ellipse2D> crosshair;
+        std::shared_ptr<gfx::Ellipse2D> crosshair;
 
-    gfx::Vec2d prev_mouse_pos { 0.0, 0.0 };
+        gfx::Vec2d prev_mouse_pos { 0.0, 0.0 };
 
-    gfx::Camera camera;
-    gfx::Vec3d camera_velocity { 0.0, 0.0, 0.0 };
-    double camera_acceleration = 500.0;
-    double camera_damping = 0.85;
-    double max_camera_speed = 30.0;
+        gfx::Camera camera;
+        gfx::Vec3d camera_velocity { 0.0, 0.0, 0.0 };
+        double camera_acceleration = 500.0;
+        double camera_damping = 0.85;
+        double max_camera_speed = 30.0;
 
-    double last_frame_ms = 0.0;
+        double last_frame_ms = 0.0;
 
-    std::map<Key, bool> key_states {
-        { Key::W, false },
-        { Key::A, false },
-        { Key::S, false },
-        { Key::D, false },
-        { Key::SPACE, false },
-        { Key::CTRL, false },
+        std::map<Key, bool> key_states {
+            { Key::W, false },
+            { Key::A, false },
+            { Key::S, false },
+            { Key::D, false },
+            { Key::SPACE, false },
+            { Key::CTRL, false },
+        };
     };
-
-};
-
 }

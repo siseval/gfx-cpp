@@ -9,51 +9,47 @@
 
 namespace demos
 {
-
-class Particle
-{
-
-public:
-
-    Particle(
-        std::shared_ptr<gfx::Render2D> renderer,
-        const gfx::Vec2d position,
-        const gfx::Vec2d velocity,
-        const gfx::Vec2d size,
-        const std::vector<gfx::Color4> &colors,
-        const double lifespan
-    )
-        : renderer(renderer),
-          size(size),
-          position(position),
-          velocity(velocity),
-          colors(colors),
-          lifespan_ms(lifespan)
+    class Particle
     {
-        shape = renderer->create_ellipse(position, size, colors[0]);
-        shape->set_filled(true);
-        renderer->add_item(shape);
-        creation_time_ms = time_ms();
-    }
+    public:
 
-    void process(double dt);
-    bool done = false;
+        Particle(
+            std::shared_ptr<gfx::Render2D> renderer,
+            const gfx::Vec2d position,
+            const gfx::Vec2d velocity,
+            const gfx::Vec2d size,
+            const std::vector<gfx::Color4>& colors,
+            const double lifespan
+        )
+            : renderer(renderer),
+              size(size),
+              position(position),
+              velocity(velocity),
+              colors(colors),
+              lifespan_ms(lifespan)
+        {
+            shape = renderer->create_ellipse(position, size, colors[0]);
+            shape->set_filled(true);
+            renderer->add_item(shape);
+            creation_time_ms = time_ms();
+        }
 
-private:
+        void process(double dt);
+        bool done = false;
 
-    void update_position(double dt);
-    void apply_gravity(double dt);
+    private:
 
-    std::shared_ptr<gfx::Render2D> renderer;
-    std::shared_ptr<gfx::Ellipse2D> shape;
-    gfx::Vec2d size;
-    gfx::Vec2d position;
-    gfx::Vec2d velocity;
-    std::vector<gfx::Color4> colors;
+        void update_position(double dt);
+        void apply_gravity(double dt);
 
-    double lifespan_ms = 0.0;
-    double creation_time_ms = 0.0;
+        std::shared_ptr<gfx::Render2D> renderer;
+        std::shared_ptr<gfx::Ellipse2D> shape;
+        gfx::Vec2d size;
+        gfx::Vec2d position;
+        gfx::Vec2d velocity;
+        std::vector<gfx::Color4> colors;
 
-};
-
+        double lifespan_ms = 0.0;
+        double creation_time_ms = 0.0;
+    };
 }

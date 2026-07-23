@@ -4,16 +4,14 @@
 
 namespace gfx
 {
+    struct BoundingSphere
+    {
+        BoundingSphere();
+        BoundingSphere(Vec3d center, double radius);
 
-struct BoundingSphere
-{
-    BoundingSphere();
-    BoundingSphere(Vec3d center, double radius);
+        BoundingSphere transformed(const Vec3d& translation, const Vec3d& scale) const;
 
-    BoundingSphere transformed(const Vec3d &translation, const Vec3d &scale) const;
-
-    Vec3d center;
-    double radius;
-};
-
+        Vec3d center;
+        double radius;
+    };
 }

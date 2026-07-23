@@ -4,7 +4,7 @@ add_subdirectory(animations)
 
 add_library(demos_glfw INTERFACE)
 
-target_link_libraries(demos_glfw INTERFACE 
+target_link_libraries(demos_glfw INTERFACE
         glfw
 )
 

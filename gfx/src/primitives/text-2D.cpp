@@ -1,6 +1,9 @@
 #include "gfx/primitives/text-2D.h"
 
+#include "gfx/geometry/rasterize.h"
 #include "gfx/geometry/transform-2D.h"
+#include "gfx/geometry/triangulate.h"
+#include "gfx/geometry/types/polygon.h"
 #include "gfx/text/utf-8.h"
 
 
@@ -109,8 +112,7 @@ namespace gfx
             }
 
             const double offset_x {
-                [&]
-                {
+                [&] {
                     switch (_alignment)
                     {
                     case TextAlignment::LEFT:
@@ -124,30 +126,50 @@ namespace gfx
                 }()
             };
 
-            auto edges = _font->get_glyph_edges(codepoint);
-            for (auto& [v0, v1] : edges)
+            auto edges = _font->get_glyph_edges_multi_contour(codepoint);
+            for (auto& contour : edges)
             {
-                v0 = v0 * scale;
-                v1 = v1 * scale;
+                for (auto& [v0, v1] : contour)
+                {
+                    v0 = v0 * scale;
+                    v1 = v1 * scale;
 
-                v0.x += pen.x - min.x + offset_x;
-                v1.x += pen.x - min.x + offset_x;
+                    v0.x += pen.x - min.x + offset_x;
+                    v1.x += pen.x - min.x + offset_x;
 
-                v0.y = -v0.y + ascent + pen.y - min.y;
-                v1.y = -v1.y + ascent + pen.y - min.y;
+                    v0.y = -v0.y + ascent + pen.y - min.y;
+                    v1.y = -v1.y + ascent + pen.y - min.y;
 
-                v0 = Transform2D::transform_point(v0, transform);
-                v1 = Transform2D::transform_point(v1, transform);
+                    v0 = Transform2D::transform_point(v0, transform);
+                    v1 = Transform2D::transform_point(v1, transform);
+                }
             }
 
-            if (_smoothing_radius > 0.0)
-            {
-                rasterize_glyph_sdf(edges, output);
-            }
-            else
-            {
-                rasterize_glyph(edges, output.pixels);
-            }
+            rasterize_glyph_triangulation(edges, output.pixels);
+            // auto edges = _font->get_glyph_edges(codepoint);
+            // for (auto& [v0, v1] : edges)
+            // {
+            //     v0 = v0 * scale;
+            //     v1 = v1 * scale;
+            //
+            //     v0.x += pen.x - min.x + offset_x;
+            //     v1.x += pen.x - min.x + offset_x;
+            //
+            //     v0.y = -v0.y + ascent + pen.y - min.y;
+            //     v1.y = -v1.y + ascent + pen.y - min.y;
+            //
+            //     v0 = Transform2D::transform_point(v0, transform);
+            //     v1 = Transform2D::transform_point(v1, transform);
+            // }
+
+            // if (_smoothing_radius > 0.0)
+            // {
+            //     rasterize_glyph_sdf(edges, output);
+            // }
+            // else
+            // {
+            //     rasterize_glyph(edges, output.pixels);
+            // }
 
             pen.x += _font->get_glyph_advance(codepoint) * scale;
             i += bytes;
@@ -169,10 +191,7 @@ namespace gfx
 
         const double line_height = line_gap > 0.0 ? _font_size + line_gap : _font_size * _line_height_multiplier;
 
-        Box2d bounds {
-            Vec2d(std::numeric_limits<double>::max()),
-            Vec2d(std::numeric_limits<double>::lowest())
-        };
+        Box2d bounds { Vec2d(std::numeric_limits<double>::max()), Vec2d(std::numeric_limits<double>::lowest()) };
 
         Vec2d pen { 0.0, 0.0 };
 
@@ -281,6 +300,116 @@ namespace gfx
         return _line_height_multiplier;
     }
 
+    static bool is_clockwise(std::vector<Vec2d> vertices)
+    {
+        double sum = 0.0;
+        for (int i = 0; i < vertices.size(); ++i)
+        {
+            const Vec2d p0 { vertices[i] };
+            const Vec2d p1 { vertices[(i + 1) % vertices.size()] };
+            sum += (p1.x - p0.x) * (p1.y + p0.y);
+        }
+        return sum < 0.0;
+    }
+
+    static void rasterize_edge(const Vec2d start, const Vec2d end, std::vector<Vec2i>& pixels)
+    {
+        const double line_extent { 1.0 };
+        const Vec2d normal { (end - start).normal().normalize() };
+
+        const Vec2d offset { normal * line_extent };
+
+        Vec2d v0 { start + offset };
+        Vec2d v1 { start - offset };
+        Vec2d v2 { end + offset };
+        Vec2d v3 { end - offset };
+
+        Rasterize::rasterize_filled_triangle({ v0, v1, v2 }, pixels);
+        Rasterize::rasterize_filled_triangle({ v1, v3, v2 }, pixels);
+    }
+
+    void Text2D::rasterize_glyph_triangulation(
+        const std::vector<std::vector<FontTTF::ContourEdge>>& glyph,
+        std::vector<Vec2i>& pixels
+    )
+    {
+        std::vector<Polygon<double>> polygons;
+        std::vector<std::vector<Vec2d>> holes;
+        std::vector<Box2d> polygon_bounds;
+        std::vector<Box2d> holes_bounds;
+
+        for (const auto& contour : glyph)
+        {
+            // std::vector<Vec2d> vertices;
+            // for (const auto& vertex : contour)
+            // {
+            //     vertices.push_back(vertex.v0);
+            //     vertices.push_back(vertex.v1);
+            // }
+            // polygons.push_back(vertices);
+
+            std::vector<Vec2d> points;
+            Box2d bounds;
+            for (const auto& [v0, v1] : contour)
+            {
+                points.push_back(v0);
+                points.push_back(v1);
+                bounds.expand(v0);
+                bounds.expand(v1);
+            }
+            if (!is_clockwise(points))
+            {
+                holes.push_back(points);
+                holes_bounds.push_back(bounds);
+                polygons.back().holes.push_back(Polygon<double>::Contour(points, false));
+            }
+            else
+            {
+                polygons.push_back(Polygon<double>(points, true));
+                polygon_bounds.push_back(bounds);
+            }
+        }
+        for (const auto& polygon : polygons)
+        {
+            const auto& triangles = Triangulate::triangulate_polygon(polygon);
+
+            for (const auto& tri : triangles)
+            {
+                Rasterize::rasterize_filled_triangle(tri, pixels);
+            }
+        }
+
+        // std::vector<std::vector<std::vector<Vec2d>>> poly_to_holes(polygons.size());
+        //
+        // for (int i = 0; i < holes.size(); ++i)
+        // {
+        //     for (int j = 0; j < polygons.size(); ++j)
+        //     {
+        //         if (polygon_bounds[j].contains(holes_bounds[i]))
+        //         {
+        //             poly_to_holes[j].push_back(holes[i]);
+        //             break;
+        //         }
+        //     }
+        // }
+        //
+        // for (int i = 0; i < poly_to_holes.size(); ++i)
+        // {
+        //     std::vector<Polygon<double>::Contour> poly_holes;
+        //     for (int j = 0; j < poly_to_holes[i].size(); ++j)
+        //     {
+        //         poly_holes.push_back(Polygon<double>::Contour(poly_to_holes[i][j], false));
+        //     }
+        //     auto component = Polygon<double>(polygons[i], true, poly_holes);
+        //     auto triangles = Triangulate::triangulate_polygon(component);
+        //
+        //     for (int j = 0; j < triangles.size(); ++j)
+        //     {
+        //         Rasterize::rasterize_filled_triangle(triangles[i], pixels);
+        //     }
+        // }
+    }
+
     void Text2D::rasterize_glyph_sdf(const std::vector<FontTTF::ContourEdge>& glyph, RasterizeOutput& output) const
     {
         if (glyph.empty())
@@ -332,7 +461,7 @@ namespace gfx
         }
     }
 
-    void Text2D::rasterize_glyph(std::vector<FontTTF::ContourEdge> glyph, std::vector<Vec2i>& pixels)
+    void Text2D::rasterize_glyph(const std::vector<FontTTF::ContourEdge>& glyph, std::vector<Vec2i>& pixels)
     {
         if (glyph.empty())
         {
@@ -349,9 +478,7 @@ namespace gfx
             bounds.expand(static_cast<Vec2<int>>(v1));
         }
 
-        const std::vector edge_table {
-            build_edge_table(glyph, bounds)
-        };
+        const std::vector edge_table { build_edge_table(glyph, bounds) };
 
         std::vector<ETEntry> active_table;
 
@@ -367,16 +494,14 @@ namespace gfx
 
             std::erase_if(
                 active_table,
-                [y](const ETEntry& e)
-                {
+                [y](const ETEntry& e) {
                     return y >= e.y_max;
                 }
             );
 
             std::ranges::sort(
                 active_table,
-                [](const ETEntry& a, const ETEntry& b)
-                {
+                [](const ETEntry& a, const ETEntry& b) {
                     return a.x < b.x;
                 }
             );
@@ -413,15 +538,7 @@ namespace gfx
             const Vec2d dir { v * inv_len };
             const Vec2d normal { -dir.y, dir.x };
 
-            data.emplace_back(
-                EdgeData {
-                    v0,
-                    v1,
-                    dir,
-                    normal,
-                    1.0 / len2
-                }
-            );
+            data.emplace_back(EdgeData { v0, v1, dir, normal, 1.0 / len2 });
         }
 
         return data;
@@ -468,11 +585,7 @@ namespace gfx
 
             const double intersection = x0 + (y_start - y0) * dx;
 
-            ETEntry entry {
-                .x     = intersection,
-                .dx    = dx,
-                .y_max = y_end
-            };
+            ETEntry entry { .x = intersection, .dx = dx, .y_max = y_end };
 
             edge_table[y_start - bounds.min.y].push_back(entry);
         }
@@ -481,8 +594,7 @@ namespace gfx
         {
             std::ranges::sort(
                 entries,
-                [](const ETEntry& a, const ETEntry& b)
-                {
+                [](const ETEntry& a, const ETEntry& b) {
                     return a.x < b.x;
                 }
             );
@@ -514,13 +626,7 @@ namespace gfx
     double Text2D::dist_to_segment(const EdgeData& edge_data, const Vec2d point)
     {
         const Vec2d w { point - edge_data.p0 };
-        const double t {
-            std::clamp(
-                Vec2d::dot(w, edge_data.dir),
-                0.0,
-                (edge_data.p1 - edge_data.p0).length()
-            )
-        };
+        const double t { std::clamp(Vec2d::dot(w, edge_data.dir), 0.0, (edge_data.p1 - edge_data.p0).length()) };
 
         const Vec2d dist { point - (edge_data.p0 + edge_data.dir * t) };
 

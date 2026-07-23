@@ -4,15 +4,12 @@
 
 namespace gfx
 {
-    
-class Polygon3D final : public Primitive3D
-{
+    class Polygon3D final : public Primitive3D
+    {
+    public:
 
-public:
+        const PolygonMesh& get_mesh() const override;
 
-    const PolygonMesh &get_mesh() const override;
-
-    void set_mesh(const PolygonMesh &mesh) const;
-};
-    
+        void set_mesh(const PolygonMesh& mesh) const;
+    };
 }

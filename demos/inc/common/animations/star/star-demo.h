@@ -6,37 +6,36 @@
 
 namespace demos
 {
-
-class StarDemo : public GfxDemo
-{
-
-public:
-
-    StarDemo(const std::shared_ptr<gfx::RenderEngine> renderer, const std::shared_ptr<gfx::DebugViewer> debug_viewer = nullptr)
-        : GfxDemo(renderer, debug_viewer)
+    class StarDemo : public GfxDemo
     {
-        render2D = renderer->get_render_2D();
-    }
+    public:
 
-    void init() override;
-    void render_frame(double dt) override;
-    void end() override;
-    void handle_char(int input) override;
-    void report_mouse(const MouseEvent event) override {}
+        StarDemo(const std::shared_ptr<gfx::RenderEngine> renderer, const std::shared_ptr<gfx::DebugViewer> debug_viewer = nullptr)
+            : GfxDemo(renderer, debug_viewer)
+        {
+            render2D = renderer->get_render_2D();
+        }
 
-private:
+        void init() override;
+        void render_frame(double dt) override;
+        void end() override;
+        void handle_char(int input) override;
 
-    std::shared_ptr<gfx::Render2D> render2D;
+        void report_mouse(const MouseEvent event) override
+        {
+        }
 
-    int num_polylines = 32;
-    std::vector<std::shared_ptr<gfx::Polyline2D>> polylines;
-    std::vector<gfx::Color4> colors;
-    int num_colors = 64;
+    private:
 
-    double speed = 2.0;
-    double time = 0.0;
-    bool paused = false;
+        std::shared_ptr<gfx::Render2D> render2D;
 
-};
+        int num_polylines = 32;
+        std::vector<std::shared_ptr<gfx::Polyline2D>> polylines;
+        std::vector<gfx::Color4> colors;
+        int num_colors = 64;
 
+        double speed = 2.0;
+        double time = 0.0;
+        bool paused = false;
+    };
 }

@@ -8,110 +8,109 @@
 
 namespace demos
 {
-
-class Body
-{
-
-public:
-
-    Body(
-        std::string name,
-        const gfx::Vec2d position,
-        const gfx::Vec2d velocity,
-        const double radius,
-        const double mass,
-        const bool locked,
-        const gfx::Color4 color
-    )
-        : name(name),
-          position(position),
-          velocity(velocity),
-          radius(radius),
-          mass(mass),
-          locked(locked),
-          color(color) {}
-
-    void update_position(double dt);
-    void apply_gravity(std::shared_ptr<Body> other, double dt);
-
-    void set_name(const std::string n)
+    class Body
     {
-        name = n;
-    }
+    public:
 
-    std::string get_name() const
-    {
-        return name;
-    }
+        Body(
+            std::string name,
+            const gfx::Vec2d position,
+            const gfx::Vec2d velocity,
+            const double radius,
+            const double mass,
+            const bool locked,
+            const gfx::Color4 color
+        )
+            : name(name),
+              position(position),
+              velocity(velocity),
+              radius(radius),
+              mass(mass),
+              locked(locked),
+              color(color)
+        {
+        }
 
-    void set_position(const gfx::Vec2d pos)
-    {
-        position = pos;
-    }
+        void update_position(double dt);
+        void apply_gravity(std::shared_ptr<Body> other, double dt);
 
-    gfx::Vec2d get_position() const
-    {
-        return position;
-    }
+        void set_name(const std::string n)
+        {
+            name = n;
+        }
 
-    void set_velocity(const gfx::Vec2d vel)
-    {
-        velocity = vel;
-    }
+        std::string get_name() const
+        {
+            return name;
+        }
 
-    gfx::Vec2d get_velocity() const
-    {
-        return velocity;
-    }
+        void set_position(const gfx::Vec2d pos)
+        {
+            position = pos;
+        }
 
-    void set_radius(const double r)
-    {
-        radius = r;
-    }
+        gfx::Vec2d get_position() const
+        {
+            return position;
+        }
 
-    double get_radius() const
-    {
-        return radius;
-    }
+        void set_velocity(const gfx::Vec2d vel)
+        {
+            velocity = vel;
+        }
 
-    void set_mass(const double m)
-    {
-        mass = m;
-    }
+        gfx::Vec2d get_velocity() const
+        {
+            return velocity;
+        }
 
-    double get_mass() const
-    {
-        return mass;
-    }
+        void set_radius(const double r)
+        {
+            radius = r;
+        }
 
-    bool is_locked() const
-    {
-        return locked;
-    }
+        double get_radius() const
+        {
+            return radius;
+        }
 
-    void set_color(const gfx::Color4 col)
-    {
-        color = col;
-    }
+        void set_mass(const double m)
+        {
+            mass = m;
+        }
 
-    gfx::Color4 get_color() const
-    {
-        return color;
-    }
+        double get_mass() const
+        {
+            return mass;
+        }
 
-protected:
+        bool is_locked() const
+        {
+            return locked;
+        }
 
-    std::string name;
+        void set_color(const gfx::Color4 col)
+        {
+            color = col;
+        }
 
-    gfx::Vec2d position;
-    gfx::Vec2d velocity;
+        gfx::Color4 get_color() const
+        {
+            return color;
+        }
 
-    double radius;
-    double mass;
+    protected:
 
-    bool locked { false };
+        std::string name;
 
-    gfx::Color4 color;
-};
+        gfx::Vec2d position;
+        gfx::Vec2d velocity;
 
+        double radius;
+        double mass;
+
+        bool locked { false };
+
+        gfx::Color4 color;
+    };
 }

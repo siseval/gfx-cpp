@@ -8,105 +8,102 @@
 
 namespace demos
 {
-
-struct Boid
-{
-    gfx::Vec2d position;
-    gfx::Vec2d velocity;
-
-    std::shared_ptr<gfx::Polyline2D> shape;
-};
-
-class BoidsDemo : public GfxDemo
-{
-
-public:
-
-    BoidsDemo(const std::shared_ptr<gfx::RenderEngine> renderer, const std::shared_ptr<gfx::DebugViewer> debug_viewer = nullptr)
-        : GfxDemo(renderer, debug_viewer)
+    struct Boid
     {
-        render2D = renderer->get_render_2D();
-    }
+        gfx::Vec2d position;
+        gfx::Vec2d velocity;
 
-    void init() override;
-    void render_frame(double dt) override;
-    void end() override;
-    void handle_char(int input) override;
-    void report_mouse(MouseEvent event) override;
+        std::shared_ptr<gfx::Polyline2D> shape;
+    };
 
-    std::vector<std::string> debug_text() override
+    class BoidsDemo : public GfxDemo
     {
-        return {
-            "num boids: " + std::to_string(boids.size()),
-            "pos: " + (boids.size() > 0 ?
-                           "[" + std::to_string(boids[0]->position.x) + ", " + std::to_string(boids[0]->position.y)
-                           + "]" :
-                           "N/A"),
-        };
-    }
+    public:
 
-private:
+        BoidsDemo(const std::shared_ptr<gfx::RenderEngine> renderer, const std::shared_ptr<gfx::DebugViewer> debug_viewer = nullptr)
+            : GfxDemo(renderer, debug_viewer)
+        {
+            render2D = renderer->get_render_2D();
+        }
 
-    gfx::Vec2d alignment(
-        std::shared_ptr<Boid> boid,
-        const std::vector<std::shared_ptr<Boid>> &neighbors
-    ) const;
-    gfx::Vec2d cohesion(
-        std::shared_ptr<Boid> boid,
-        const std::vector<std::shared_ptr<Boid>> &neighbors
-    ) const;
-    gfx::Vec2d separation(
-        std::shared_ptr<Boid> boid,
-        const std::vector<std::shared_ptr<Boid>> &neighbors
-    ) const;
-    gfx::Vec2d centering(std::shared_ptr<Boid> boid) const;
-    gfx::Vec2d mouse_avoidance(std::shared_ptr<Boid> boid) const;
-    void apply_behaviors(
-        std::shared_ptr<Boid> boid,
-        const std::vector<std::shared_ptr<Boid>> &neighbors,
-        double dt
-    ) const;
+        void init() override;
+        void render_frame(double dt) override;
+        void end() override;
+        void handle_char(int input) override;
+        void report_mouse(MouseEvent event) override;
 
-    void wrap_position(std::shared_ptr<Boid> boid) const;
+        std::vector<std::string> debug_text() override
+        {
+            return {
+                "num boids: " + std::to_string(boids.size()),
+                "pos: " + (boids.size() > 0
+                               ? "[" + std::to_string(boids[0]->position.x) + ", " + std::to_string(boids[0]->position.y)
+                               + "]"
+                               : "N/A"),
+            };
+        }
 
-    std::vector<std::shared_ptr<Boid>> get_neighbors(std::shared_ptr<Boid> boid) const;
+    private:
 
-    static void process_boid(std::shared_ptr<Boid> boid, double dt);
-    void process_boids(double dt);
-    void render_boids() const;
+        gfx::Vec2d alignment(
+            std::shared_ptr<Boid> boid,
+            const std::vector<std::shared_ptr<Boid>>& neighbors
+        ) const;
+        gfx::Vec2d cohesion(
+            std::shared_ptr<Boid> boid,
+            const std::vector<std::shared_ptr<Boid>>& neighbors
+        ) const;
+        gfx::Vec2d separation(
+            std::shared_ptr<Boid> boid,
+            const std::vector<std::shared_ptr<Boid>>& neighbors
+        ) const;
+        gfx::Vec2d centering(std::shared_ptr<Boid> boid) const;
+        gfx::Vec2d mouse_avoidance(std::shared_ptr<Boid> boid) const;
+        void apply_behaviors(
+            std::shared_ptr<Boid> boid,
+            const std::vector<std::shared_ptr<Boid>>& neighbors,
+            double dt
+        ) const;
 
-    void spawn_boid(gfx::Vec2d position, gfx::Vec2d velocity);
-    void spawn_boid();
-    void remove_boid(std::shared_ptr<Boid> boid);
+        void wrap_position(std::shared_ptr<Boid> boid) const;
 
-    std::shared_ptr<gfx::Render2D> render2D;
+        std::vector<std::shared_ptr<Boid>> get_neighbors(std::shared_ptr<Boid> boid) const;
 
-    gfx::Vec2d mouse_position;
-    bool mouse_active = false;
-    double mouse_influence_radius = 100.0;
+        static void process_boid(std::shared_ptr<Boid> boid, double dt);
+        void process_boids(double dt);
+        void render_boids() const;
 
-    int num_boids = 500;
-    std::vector<std::shared_ptr<Boid>> boids;
+        void spawn_boid(gfx::Vec2d position, gfx::Vec2d velocity);
+        void spawn_boid();
+        void remove_boid(std::shared_ptr<Boid> boid);
 
-    double boid_scale = 0.8;
+        std::shared_ptr<gfx::Render2D> render2D;
 
-    double perception_radius;
-    double max_speed;
-    double max_force;
-    double desired_separation;
+        gfx::Vec2d mouse_position;
+        bool mouse_active = false;
+        double mouse_influence_radius = 100.0;
 
-    double separation_weight = 1.5;
-    double alignment_weight = 1.0;
-    double cohesion_weight = 1.0;
-    double centering_weight = 2.0;
-    double mouse_avoid_weigth = 10.0;
+        int num_boids = 500;
+        std::vector<std::shared_ptr<Boid>> boids;
 
-    double bounds_margin_fraction = 0.2;
+        double boid_scale = 0.8;
 
-    gfx::Color4 slow_color { 0.5, 0.8, 1.0 };
-    gfx::Color4 fast_color { 1.0, 0.6, 0.6 };
-    std::vector<gfx::Color4> boid_palette;
-    int num_boid_colors = 120;
-};
+        double perception_radius;
+        double max_speed;
+        double max_force;
+        double desired_separation;
 
+        double separation_weight = 1.5;
+        double alignment_weight = 1.0;
+        double cohesion_weight = 1.0;
+        double centering_weight = 2.0;
+        double mouse_avoid_weigth = 10.0;
+
+        double bounds_margin_fraction = 0.2;
+
+        gfx::Color4 slow_color { 0.5, 0.8, 1.0 };
+        gfx::Color4 fast_color { 1.0, 0.6, 0.6 };
+        std::vector<gfx::Color4> boid_palette;
+        int num_boid_colors = 120;
+    };
 }

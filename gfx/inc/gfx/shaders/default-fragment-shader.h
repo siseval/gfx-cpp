@@ -4,15 +4,13 @@
 
 namespace gfx
 {
-class DefaultFragmentShader final : public FragmentShader
-{
-
-public:
-
-    Color4 frag(const Input &input, const Uniforms &uniforms) const override
+    class DefaultFragmentShader final : public FragmentShader
     {
-        return input.color;
-    }
-};
+    public:
 
+        Color4 frag(const Input& input, const Uniforms& uniforms) const override
+        {
+            return input.color;
+        }
+    };
 }

@@ -4,27 +4,26 @@
 
 namespace gfx
 {
-class Cone3D final : public Primitive3D
-{
+    class Cone3D final : public Primitive3D
+    {
+    public:
 
-public:
+        Cone3D() = default;
 
-    Cone3D() = default;
+        const PolygonMesh& get_mesh() const override;
 
-    const PolygonMesh &get_mesh() const override;
+        void set_radius(double new_radius);
+        void set_height(double new_height);
+        void set_segments(int new_segments);
 
-    void set_radius(double new_radius);
-    void set_height(double new_height);
-    void set_segments(int new_segments);
+        double get_radius() const;
+        double get_height() const;
+        int get_segments() const;
 
-    double get_radius() const;
-    double get_height() const;
-    int get_segments() const;
+    private:
 
-private:
-
-    double _radius;
-    double _height;
-    int _segments;
-};
+        double _radius;
+        double _height;
+        int _segments;
+    };
 }

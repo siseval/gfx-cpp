@@ -3,28 +3,26 @@
 
 namespace demos
 {
-
-void Body::update_position(const double dt)
-{
-    position += velocity * dt;
-}
-
-void Body::apply_gravity(const std::shared_ptr<Body> other, const double dt)
-{
-    gfx::Vec2d direction { other->position - position };
-    const double distance { std::max(direction.length(), get_radius() + other->get_radius()) };
-    if (distance <= 0.0)
+    void Body::update_position(const double dt)
     {
-        return;
+        position += velocity * dt;
     }
 
-    direction = direction.normalize();
+    void Body::apply_gravity(const std::shared_ptr<Body> other, const double dt)
+    {
+        gfx::Vec2d direction { other->position - position };
+        const double distance { std::max(direction.length(), get_radius() + other->get_radius()) };
+        if (distance <= 0.0)
+        {
+            return;
+        }
 
-    const double force_magnitude { units::G * mass * other->mass / (distance * distance) };
-    const gfx::Vec2d force { direction * force_magnitude };
+        direction = direction.normalize();
 
-    const gfx::Vec2d acceleration { force / mass };
-    velocity += acceleration * dt;
-}
+        const double force_magnitude { units::G * mass * other->mass / (distance * distance) };
+        const gfx::Vec2d force { direction * force_magnitude };
 
+        const gfx::Vec2d acceleration { force / mass };
+        velocity += acceleration * dt;
+    }
 }

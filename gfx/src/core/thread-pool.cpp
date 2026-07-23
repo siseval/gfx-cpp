@@ -7,55 +7,56 @@
 
 namespace gfx
 {
-
-ThreadPool::ThreadPool(const int num_threads)
-    : _barrier(num_threads + 1),
-      _running(true)
-{
-    for (int i = 0; i < num_threads; ++i)
+    ThreadPool::ThreadPool(const int num_threads)
+        : _barrier(num_threads + 1)
+        , _running(true)
     {
-        _workers.emplace_back([this] { worker_loop(); });
-    }
-}
-
-ThreadPool::~ThreadPool()
-{
-    _running = false;
-    _barrier.arrive_and_drop();
-    for (auto &worker : _workers)
-    {
-        if (worker.joinable())
+        for (int i = 0; i < num_threads; ++i)
         {
-            worker.join();
+            _workers.emplace_back(
+                [this] {
+                    worker_loop();
+                }
+            );
         }
     }
-}
 
-void ThreadPool::worker_loop()
-{
-    while (_running)
+    ThreadPool::~ThreadPool()
     {
-        _barrier.arrive_and_wait();
-
-        if (!_running)
+        _running = false;
+        _barrier.arrive_and_drop();
+        for (auto& worker : _workers)
         {
-            return;
-        }
-
-        while (true)
-        {
-            const int i = _next_index.fetch_add(1, std::memory_order_relaxed);
-            if (i >= _total_work)
+            if (worker.joinable())
             {
-                break;
+                worker.join();
+            }
+        }
+    }
+
+    void ThreadPool::worker_loop()
+    {
+        while (_running)
+        {
+            _barrier.arrive_and_wait();
+
+            if (!_running)
+            {
+                return;
             }
 
-            _work_fn(i);
+            while (true)
+            {
+                const int i = _next_index.fetch_add(1, std::memory_order_relaxed);
+                if (i >= _total_work)
+                {
+                    break;
+                }
+
+                _work_fn(i);
+            }
+
+            _barrier.arrive_and_wait();
         }
-
-        _barrier.arrive_and_wait();
     }
-}
-
-
 }

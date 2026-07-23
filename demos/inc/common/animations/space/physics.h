@@ -6,28 +6,29 @@
 
 namespace demos
 {
+    class PhysicsDemo : public demos::GfxDemo
+    {
+    public:
 
-class PhysicsDemo : public demos::GfxDemo
-{
+        PhysicsDemo(const std::shared_ptr<gfx::GfxRender2D> renderer)
+            : GfxDemo(renderer)
+        {
+        }
 
-public:
+        void init() override;
+        void render_frame(const double dt) override;
+        void end() override;
+        void handle_input(const int input) override;
 
-    PhysicsDemo(const std::shared_ptr<gfx::GfxRender2D> renderer)
-        : GfxDemo(renderer) {}
+        void report_mouse(const demos::MouseEvent event) override
+        {
+        }
 
-    void init() override;
-    void render_frame(const double dt) override;
-    void end() override;
-    void handle_input(const int input) override;
-    void report_mouse(const demos::MouseEvent event) override {}
+    private:
 
-private:
-
-    int num_polylines = 32;
-    std::vector<std::shared_ptr<gfx::Polyline2D>> polylines;
-
-};
-
+        int num_polylines = 32;
+        std::vector<std::shared_ptr<gfx::Polyline2D>> polylines;
+    };
 }
 
 #endif // PHYSICS_DEMO_H
