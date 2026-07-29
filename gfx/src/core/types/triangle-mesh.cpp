@@ -1,12 +1,12 @@
-#include "gfx/core/types/polygon-mesh.h"
+#include "gfx/core/types/triangle-mesh.h"
 
 namespace gfx
 {
-    PolygonMesh::PolygonMesh()
+    TriangleMesh::TriangleMesh()
         : _aabb_dirty(true)
         , _bounding_sphere_dirty(true) {}
 
-    Box3d PolygonMesh::get_aabb() const
+    Box3d TriangleMesh::get_aabb() const
     {
         if (!_aabb_dirty)
         {
@@ -30,7 +30,7 @@ namespace gfx
         return _aabb;
     }
 
-    BoundingSphere PolygonMesh::get_bounding_sphere() const
+    BoundingSphere TriangleMesh::get_bounding_sphere() const
     {
         if (!_bounding_sphere_dirty)
         {
@@ -56,64 +56,64 @@ namespace gfx
         return _bounding_sphere;
     }
 
-    void PolygonMesh::set_vertices(const std::vector<Vec3d>& verts)
+    void TriangleMesh::set_vertices(const std::vector<Vec3d>& verts)
     {
         _vertices = verts;
         _aabb_dirty = true;
         _bounding_sphere_dirty = true;
     }
 
-    void PolygonMesh::set_normals(const std::vector<Vec3d>& norms)
+    void TriangleMesh::set_normals(const std::vector<Vec3d>& norms)
     {
         _normals = norms;
     }
 
-    void PolygonMesh::set_uvs(const std::vector<Vec2d>& uvs)
+    void TriangleMesh::set_uvs(const std::vector<Vec2d>& uvs)
     {
         _uv_coords = uvs;
     }
 
-    void PolygonMesh::set_colors(const std::vector<Color4>& cols)
+    void TriangleMesh::set_colors(const std::vector<Color4>& cols)
     {
         _colors = cols;
     }
 
-    void PolygonMesh::set_faces(const std::vector<Face>& fcs)
+    void TriangleMesh::set_faces(const std::vector<Face>& fcs)
     {
         _faces = fcs;
     }
 
-    const std::vector<Vec3d>& PolygonMesh::get_vertices() const
+    const std::vector<Vec3d>& TriangleMesh::get_vertices() const
     {
         return _vertices;
     }
 
-    const std::vector<Vec3d>& PolygonMesh::get_normals() const
+    const std::vector<Vec3d>& TriangleMesh::get_normals() const
     {
         return _normals;
     }
 
-    const std::vector<Vec2d>& PolygonMesh::get_uvs() const
+    const std::vector<Vec2d>& TriangleMesh::get_uvs() const
     {
         return _uv_coords;
     }
 
-    const std::vector<Color4>& PolygonMesh::get_colors() const
+    const std::vector<Color4>& TriangleMesh::get_colors() const
     {
         return _colors;
     }
 
-    const std::vector<PolygonMesh::Face>& PolygonMesh::get_faces() const
+    const std::vector<TriangleMesh::Face>& TriangleMesh::get_faces() const
     {
         return _faces;
     }
 
-    size_t PolygonMesh::num_vertices() const
+    size_t TriangleMesh::num_vertices() const
     {
         return _vertices.size();
     }
 
-    void PolygonMesh::clear()
+    void TriangleMesh::clear()
     {
         _vertices.clear();
         _normals.clear();

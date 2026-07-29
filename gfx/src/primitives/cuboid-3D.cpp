@@ -2,7 +2,7 @@
 
 namespace gfx
 {
-    const PolygonMesh& Cuboid3D::get_mesh() const
+    const TriangleMesh& Cuboid3D::get_mesh() const
     {
         if (!is_mesh_dirty())
         {
@@ -132,7 +132,7 @@ namespace gfx
             { 1.0, 0.0 }
         };
 
-        const std::vector<PolygonMesh::Face> faces {
+        const std::vector<TriangleMesh::Face> faces {
             { 0, 1, 2 },
             { 3, 4, 5 },
             { 6, 7, 8 },

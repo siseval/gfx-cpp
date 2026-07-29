@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gfx/core/material/material.h"
-#include "gfx/core/types/polygon-mesh.h"
+#include "gfx/core/types/triangle-mesh.h"
 #include "gfx/core/types/uuid.h"
 #include "gfx/math/box3.h"
 #include "gfx/math/matrix.h"
@@ -17,7 +17,7 @@ namespace gfx
 
         Primitive3D();
 
-        virtual const PolygonMesh& get_mesh() const = 0;
+        virtual const TriangleMesh& get_mesh() const = 0;
 
         void set_position(const Vec3d& pos);
         void set_position(double x, double y, double z);
@@ -70,7 +70,7 @@ namespace gfx
         Vec3d _scale { 1.0, 1.0, 1.0 };
         Vec3d _anchor;
 
-        mutable PolygonMesh _mesh_data;
+        mutable TriangleMesh _mesh_data;
         mutable bool _mesh_dirty { true };
 
         mutable Matrix4x4d _cached_transform;

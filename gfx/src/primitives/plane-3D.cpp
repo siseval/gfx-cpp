@@ -2,7 +2,7 @@
 
 namespace gfx
 {
-    const PolygonMesh& Plane3D::get_mesh() const
+    const TriangleMesh& Plane3D::get_mesh() const
     {
         if (!is_mesh_dirty())
         {
@@ -20,7 +20,7 @@ namespace gfx
 
         const std::vector<Vec2d> uvs = { { 0.0, 1.0 }, { 1.0, 1.0 }, { 1.0, 0.0 }, { 0.0, 0.0 } };
 
-        const std::vector<PolygonMesh::Face> faces = { { 0, 1, 2 }, { 0, 2, 3 }, { 0, 2, 1 }, { 0, 3, 2 } };
+        const std::vector<TriangleMesh::Face> faces = { { 0, 1, 2 }, { 0, 2, 3 }, { 0, 2, 1 }, { 0, 3, 2 } };
 
         _mesh_data.set_vertices(std::move(vertices));
         _mesh_data.set_normals(std::move(normals));

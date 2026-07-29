@@ -68,7 +68,7 @@ namespace demos
         const auto bottom_item = render2D->create_text(
             top_left + Vec2d { 0.0, y_offset },
             bottom_text,
-            font_1,
+            font_2,
             14.0,
             Color4::white()
         );
@@ -80,7 +80,7 @@ namespace demos
         text_item = render2D->create_text(
             center,
             ".abcdefgh\nijklmno\npqrstuvwxyz",
-            font_2,
+            font_1,
             font_size,
             Color4::white()
         );

@@ -10,7 +10,7 @@ namespace gfx
 
         Cone3D() = default;
 
-        const PolygonMesh& get_mesh() const override;
+        const TriangleMesh& get_mesh() const override;
 
         void set_radius(double new_radius);
         void set_height(double new_height);

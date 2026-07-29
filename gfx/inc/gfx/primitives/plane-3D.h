@@ -11,7 +11,7 @@ namespace gfx
 
         Plane3D() = default;
 
-        const PolygonMesh& get_mesh() const override;
+        const TriangleMesh& get_mesh() const override;
 
         void set_size(Vec2d new_size);
         void set_size(double width, double height);

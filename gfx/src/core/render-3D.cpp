@@ -1,7 +1,5 @@
 #include "gfx/core/render-3D.h"
 
-#include "gfx/math/box2.h"
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -10,6 +8,8 @@
 #include <ranges>
 #include <thread>
 #include <vector>
+
+#include "gfx/math/box2.h"
 
 namespace gfx
 {
@@ -94,7 +94,7 @@ namespace gfx
         for (int i = 0; i < num_primitives; ++i)
         {
             const auto& [primitive, transform] = draw_queue[i];
-            const PolygonMesh& mesh { primitive->get_mesh() };
+            const TriangleMesh& mesh { primitive->get_mesh() };
             const auto& materials = primitive->get_materials();
 
             const auto& vertices = mesh.get_vertices();
@@ -118,7 +118,11 @@ namespace gfx
 
             for (size_t j = 0; j < vertices.size(); ++j)
             {
-                const VertexShader::Input vert_in { .pos = vertices[j], .normal = normals[j] };
+                const VertexShader::Input vert_in {
+                    .pos    = vertices[j],
+                    .normal = normals[j]
+                };
+
                 const auto [xyz, w, normal] {
                     vert_shader ? vert_shader->vert(vert_in, uniforms) : default_vertex_shader(vert_in, uniforms)
                 };
@@ -167,7 +171,7 @@ namespace gfx
                     const auto is_backface {
                         [](const ScreenVertex& v0, const ScreenVertex& v1, const ScreenVertex& v2) -> bool {
                             const double area = (v1.pos.x - v0.pos.x) * (v2.pos.y - v0.pos.y) - (v1.pos.y - v0.pos.y) *
-                                (v2.pos.x - v0.pos.x);
+                                                (v2.pos.x - v0.pos.x);
                             return area <= 0.0;
                         }
                     };
@@ -228,7 +232,7 @@ namespace gfx
             num_primitives,
             [&](const int i) {
                 const auto& [primitive, transform] = draw_queue[i];
-                const PolygonMesh& mesh { primitive->get_mesh() };
+                const TriangleMesh& mesh { primitive->get_mesh() };
                 const auto& materials = primitive->get_materials();
 
                 const auto& vertices = mesh.get_vertices();
@@ -301,8 +305,9 @@ namespace gfx
 
                         const auto is_backface {
                             [](const ScreenVertex& v0, const ScreenVertex& v1, const ScreenVertex& v2) -> bool {
-                                const double area = (v1.pos.x - v0.pos.x) * (v2.pos.y - v0.pos.y) - (v1.pos.y - v0.pos.
-                                    y) * (v2.pos.x - v0.pos.x);
+                                const double area =
+                                    (v1.pos.x - v0.pos.x) * (v2.pos.y - v0.pos.y) - (v1.pos.y - v0.pos.y) * (
+                                        v2.pos.x - v0.pos.x);
                                 return area <= 0.0;
                             }
                         };
@@ -818,8 +823,8 @@ namespace gfx
                 const ScreenTriangle& triangle { tri[tile.triangle_index_buffer[i]] };
 
                 const double area {
-                    (triangle.v1.pos.x - triangle.v0.pos.x) * (triangle.v2.pos.y - triangle.v0.pos.y) - (triangle.v1.pos
-                        .y - triangle.v0.pos.y) * (triangle.v2.pos.x - triangle.v0.pos.x)
+                    (triangle.v1.pos.x - triangle.v0.pos.x) * (triangle.v2.pos.y - triangle.v0.pos.y) - (
+                        triangle.v1.pos.y - triangle.v0.pos.y) * (triangle.v2.pos.x - triangle.v0.pos.x)
                 };
 
                 if (area == 0.0)
@@ -828,12 +833,12 @@ namespace gfx
                 }
 
                 const Vec3d w {
-                    ((triangle.v1.pos.y - triangle.v2.pos.y) * (pixel_pos.x - triangle.v2.pos.x) + (triangle.v2.pos.x -
-                        triangle.v1.pos.x) * (pixel_pos.y - triangle.v2.pos.y)) / area,
-                    ((triangle.v2.pos.y - triangle.v0.pos.y) * (pixel_pos.x - triangle.v2.pos.x) + (triangle.v0.pos.x -
-                        triangle.v2.pos.x) * (pixel_pos.y - triangle.v2.pos.y)) / area,
-                    ((triangle.v0.pos.y - triangle.v1.pos.y) * (pixel_pos.x - triangle.v1.pos.x) + (triangle.v1.pos.x -
-                        triangle.v0.pos.x) * (pixel_pos.y - triangle.v1.pos.y)) / area
+                    ((triangle.v1.pos.y - triangle.v2.pos.y) * (pixel_pos.x - triangle.v2.pos.x) + (
+                         triangle.v2.pos.x - triangle.v1.pos.x) * (pixel_pos.y - triangle.v2.pos.y)) / area,
+                    ((triangle.v2.pos.y - triangle.v0.pos.y) * (pixel_pos.x - triangle.v2.pos.x) + (
+                         triangle.v0.pos.x - triangle.v2.pos.x) * (pixel_pos.y - triangle.v2.pos.y)) / area,
+                    ((triangle.v0.pos.y - triangle.v1.pos.y) * (pixel_pos.x - triangle.v1.pos.x) + (
+                         triangle.v1.pos.x - triangle.v0.pos.x) * (pixel_pos.y - triangle.v1.pos.y)) / area
                 };
 
                 const double inv_w { triangle.v0.inv_w * w.x + triangle.v1.inv_w * w.y + triangle.v2.inv_w * w.z };
@@ -846,7 +851,7 @@ namespace gfx
                 const Vec3d normal_interp {
                     Vec3d(
                         (triangle.v0.normal * w.x * triangle.v0.inv_w + triangle.v1.normal * w.y * triangle.v1.inv_w +
-                            triangle.v2.normal * w.z * triangle.v2.inv_w) / inv_w
+                         triangle.v2.normal * w.z * triangle.v2.inv_w) / inv_w
                     ).normalize()
                 };
 
@@ -870,10 +875,10 @@ namespace gfx
                     [inv_w](const ScreenTriangle& screen_triangle, const Vec3d& w) -> Vec2d {
                         return Vec2d {
                             (screen_triangle.v0.uv.x * w.x * screen_triangle.v0.inv_w + screen_triangle.v1.uv.x * w.y *
-                                screen_triangle.v1.inv_w + screen_triangle.v2.uv.x * w.z * screen_triangle.v2.inv_w) /
+                             screen_triangle.v1.inv_w + screen_triangle.v2.uv.x * w.z * screen_triangle.v2.inv_w) /
                             inv_w,
                             (screen_triangle.v0.uv.y * w.x * screen_triangle.v0.inv_w + screen_triangle.v1.uv.y * w.y *
-                                screen_triangle.v1.inv_w + screen_triangle.v2.uv.y * w.z * screen_triangle.v2.inv_w) /
+                             screen_triangle.v1.inv_w + screen_triangle.v2.uv.y * w.z * screen_triangle.v2.inv_w) /
                             inv_w
                         };
                     }

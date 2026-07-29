@@ -8,7 +8,7 @@ namespace gfx
     {
     public:
 
-        const PolygonMesh& get_mesh() const override;
+        const TriangleMesh& get_mesh() const override;
 
         void set_radius(double r);
         double get_radius() const;

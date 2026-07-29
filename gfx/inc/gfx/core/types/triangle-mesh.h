@@ -10,7 +10,7 @@
 
 namespace gfx
 {
-    class PolygonMesh
+    class TriangleMesh
     {
     public:
 
@@ -22,7 +22,7 @@ namespace gfx
             size_t material_index { 0 };
         };
 
-        PolygonMesh();
+        TriangleMesh();
 
         Box3d get_aabb() const;
         BoundingSphere get_bounding_sphere() const;

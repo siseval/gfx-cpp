@@ -51,12 +51,6 @@ namespace gfx
                 const size_t cur_index { indices[i] };
                 const size_t next_index { indices[i + 1 >= indices.size() ? 0 : i + 1] };
 
-                const Triangle<double> floating_point_candidate {
-                    floating_point_vertices[prev_index],
-                    floating_point_vertices[cur_index],
-                    floating_point_vertices[next_index]
-                };
-
                 const Triangle<int> fixed_point_candidate {
                     fixed_point_vertices[prev_index],
                     fixed_point_vertices[cur_index],
@@ -73,7 +67,12 @@ namespace gfx
                     merged_contour.clockwise
                 ))
                 {
-                    triangles.push_back(floating_point_candidate);
+                    triangles.emplace_back(
+                        floating_point_vertices[prev_index],
+                        floating_point_vertices[cur_index],
+                        floating_point_vertices[next_index]
+                    );
+
                     indices.erase(indices.begin() + i);
                     ear_found = true;
                     break;
@@ -180,8 +179,9 @@ namespace gfx
 
         for (int i = 0; i < indices.size(); ++i)
         {
-            if (indices[i] == static_cast<size_t>(i0) || indices[i] == static_cast<size_t>(i1) || indices[i] ==
-                static_cast<size_t>(i2))
+            if (indices[i] == static_cast<size_t>(i0) ||
+                indices[i] == static_cast<size_t>(i1) ||
+                indices[i] == static_cast<size_t>(i2))
             {
                 continue;
             }

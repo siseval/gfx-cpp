@@ -107,14 +107,14 @@ namespace demos
         }
     };
 
-    PolygonMesh create_two_material_mesh()
+    TriangleMesh create_two_material_mesh()
     {
-        PolygonMesh mesh;
+        TriangleMesh mesh;
 
         std::vector<Vec3d> vertices;
         std::vector<Vec3d> normals;
         std::vector<Vec2d> uvs;
-        std::vector<PolygonMesh::Face> faces;
+        std::vector<TriangleMesh::Face> faces;
 
         const int resolution = 16;
 
@@ -141,7 +141,7 @@ namespace demos
             uvs.push_back(uvb);
             uvs.push_back(uvc);
 
-            faces.push_back(PolygonMesh::Face { base + 0, base + 1, base + 2, material_id });
+            faces.push_back(TriangleMesh::Face { base + 0, base + 1, base + 2, material_id });
         };
 
         for (int x = 0; x < resolution; ++x)

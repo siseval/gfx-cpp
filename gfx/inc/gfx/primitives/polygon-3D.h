@@ -8,8 +8,8 @@ namespace gfx
     {
     public:
 
-        const PolygonMesh& get_mesh() const override;
+        const TriangleMesh& get_mesh() const override;
 
-        void set_mesh(const PolygonMesh& mesh) const;
+        void set_mesh(const TriangleMesh& mesh) const;
     };
 }

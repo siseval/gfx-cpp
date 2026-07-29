@@ -2,7 +2,7 @@
 
 namespace gfx
 {
-    const PolygonMesh& Sphere3D::get_mesh() const
+    const TriangleMesh& Sphere3D::get_mesh() const
     {
         if (!is_mesh_dirty())
         {
@@ -14,7 +14,7 @@ namespace gfx
         std::vector<Vec3d> vertices;
         std::vector<Vec3d> normals;
         std::vector<Vec2d> uvs;
-        std::vector<PolygonMesh::Face> faces;
+        std::vector<TriangleMesh::Face> faces;
 
         for (int r = 0; r < _lat_segments; ++r)
         {
@@ -73,7 +73,7 @@ namespace gfx
                     uvs.push_back(uvb);
                     uvs.push_back(uvc);
 
-                    faces.push_back(PolygonMesh::Face { base + 0, base + 1, base + 2 });
+                    faces.push_back(TriangleMesh::Face { base + 0, base + 1, base + 2 });
                 };
 
                 if (r == 0)

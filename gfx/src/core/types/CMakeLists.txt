@@ -7,7 +7,7 @@ set(GFX_CORE_TYPES_SOURCES
         frustum.cpp
         bounding-sphere.cpp
         barycentric-triangle.cpp
-        polygon-mesh.cpp
+        triangle-mesh.cpp
 )
 
 add_library(gfx_core_types STATIC ${GFX_CORE_TYPES_SOURCES})
