@@ -19,17 +19,17 @@ namespace demos
     {
         renderer->load_font_directory("/Users/sigurdsevaldrud/documents/code/c++/sigfx/assets/fonts");
 
-        demos.emplace_back(std::make_shared<TextDemo>(renderer, debug_viewer));
+        // demos.emplace_back(std::make_shared<TextDemo>(renderer, debug_viewer));
         demos.emplace_back(std::make_shared<ConstructDemo>(renderer, debug_viewer));
         demos.emplace_back(std::make_shared<Test3DDemo>(renderer, debug_viewer));
-        demos.emplace_back(std::make_shared<StarDemo>(renderer, debug_viewer));
+        // demos.emplace_back(std::make_shared<StarDemo>(renderer, debug_viewer));
         // demos.emplace_back(std::make_shared<VideoDemo>(renderer, debug_viewer));
-        demos.emplace_back(std::make_shared<SnakeDemo>(renderer, debug_viewer));
-        demos.emplace_back(std::make_shared<BoidsDemo>(renderer, debug_viewer));
+        // demos.emplace_back(std::make_shared<SnakeDemo>(renderer, debug_viewer));
+        // demos.emplace_back(std::make_shared<BoidsDemo>(renderer, debug_viewer));
         // demos.emplace_back(std::make_shared<FractalDemo>(renderer, debug_viewer));
-        demos.emplace_back(std::make_shared<ShaderDemo>(renderer, debug_viewer));
-        demos.emplace_back(std::make_shared<FireworksDemo>(renderer, debug_viewer));
-        demos.emplace_back(std::make_shared<SpaceDemo>(renderer, debug_viewer));
+        // demos.emplace_back(std::make_shared<ShaderDemo>(renderer, debug_viewer));
+        // demos.emplace_back(std::make_shared<FireworksDemo>(renderer, debug_viewer));
+        // demos.emplace_back(std::make_shared<SpaceDemo>(renderer, debug_viewer));
 
         debug_viewer->set_font(renderer->get_font("gohu-regular"));
 
