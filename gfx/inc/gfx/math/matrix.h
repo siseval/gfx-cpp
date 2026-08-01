@@ -177,6 +177,9 @@ namespace gfx
         T _data[ROWS][COLS];
     };
 
+    using Matrix2x2d = Matrix<double, 3, 3>;
+    using Matrix2x1d = Matrix<double, 3, 3>;
+    
     using Matrix3x3d = Matrix<double, 3, 3>;
     using Matrix3x1d = Matrix<double, 3, 1>;
     using Matrix4x4d = Matrix<double, 4, 4>;
