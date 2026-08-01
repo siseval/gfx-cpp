@@ -153,7 +153,7 @@ namespace gfx
         return _mesh_data.get_aabb();
     }
 
-    BoundingSphere Primitive3D::get_bounding_sphere() const
+    BoundingBall Primitive3D::get_bounding_sphere() const
     {
         return _mesh_data.get_bounding_sphere();
     }

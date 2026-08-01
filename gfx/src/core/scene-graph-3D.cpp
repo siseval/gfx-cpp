@@ -179,7 +179,7 @@ namespace gfx
         {
             if (node->primitive != nullptr)
             {
-                BoundingSphere transformed_sphere {
+                BoundingBall transformed_sphere {
                     node->primitive->get_bounding_sphere().transformed(
                         node->primitive->get_position(),
                         node->primitive->get_scale()
@@ -208,7 +208,7 @@ namespace gfx
         return _nodes.contains(item->get_id());
     }
 
-    bool SceneGraph3D::sphere_in_frustum(const BoundingSphere& sphere, const Frustum& frustum)
+    bool SceneGraph3D::sphere_in_frustum(const BoundingBall& sphere, const Frustum& frustum)
     {
         return frustum.sphere_in_frustum(sphere.center, sphere.radius);
     }

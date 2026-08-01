@@ -57,7 +57,7 @@ namespace gfx
 
     private:
 
-        static bool sphere_in_frustum(const BoundingSphere& sphere, const Frustum& frustum);
+        static bool sphere_in_frustum(const BoundingBall& sphere, const Frustum& frustum);
 
         mutable std::vector<std::pair<std::shared_ptr<Primitive3D>, Matrix4x4d>> _draw_queue;
         std::shared_ptr<SceneNode3D> _root;

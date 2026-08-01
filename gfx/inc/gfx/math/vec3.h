@@ -37,6 +37,24 @@ namespace gfx
         {
             return { 0, 0, 0 };
         }
+        
+        static Vec3 min()
+        {
+            return Vec3 {
+                std::numeric_limits<T>::lowest(),
+                std::numeric_limits<T>::lowest(),
+                std::numeric_limits<T>::lowest()
+            };
+        }
+        
+        static Vec3 max()
+        {
+            return Vec3 {
+                std::numeric_limits<T>::max(), 
+                std::numeric_limits<T>::max(), 
+                std::numeric_limits<T>::max()
+            };
+        }
 
         static T dot(Vec3 a, Vec3 b)
         {
@@ -243,6 +261,7 @@ namespace gfx
     };
 
     using Vec3i = Vec3<int>;
+    using Vec3l = Vec3<long>;
     using Vec3d = Vec3<double>;
     using Vec3f = Vec3<float>;
 }

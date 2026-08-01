@@ -13,6 +13,7 @@ add_library(gfx
         inc/gfx/geometry/types/triangle.h
         inc/gfx/core/types/transform.h
         inc/gfx/core/types/transform.h
+        inc/gfx/core/types/obb.h
 )
 
 file(GLOB_RECURSE GFX_SOURCES CONFIGURE_DEPENDS

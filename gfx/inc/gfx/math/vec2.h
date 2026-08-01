@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cmath>
-#include <cstdint>
 #include <functional>
 #include <numbers>
 
@@ -32,6 +31,22 @@ namespace gfx
         static Vec2 zero()
         {
             return { 0, 0 };
+        }
+
+        static Vec2 min()
+        {
+            return Vec2 {
+                std::numeric_limits<T>::min(),
+                std::numeric_limits<T>::min()
+            };
+        }
+        
+        static Vec2 max()
+        {
+            return Vec2 {
+                std::numeric_limits<T>::max(),
+                std::numeric_limits<T>::max()
+            };
         }
 
         static T cross(Vec2 a, Vec2 b)
