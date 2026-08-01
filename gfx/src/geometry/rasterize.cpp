@@ -3,6 +3,8 @@
 #include <algorithm>
 
 #include "gfx/geometry/types/triangle.h"
+#include "gfx/math/box2.h"
+#include "gfx/math/vec3.h"
 
 
 namespace gfx

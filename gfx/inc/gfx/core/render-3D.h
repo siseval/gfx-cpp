@@ -1,13 +1,13 @@
 #pragma once
 
+#include <map>
+#include <memory>
+
 #include "gfx/core/camera.h"
 #include "gfx/core/primitive-3D.h"
 #include "gfx/core/render-surface.h"
 #include "gfx/core/scene-graph-3D.h"
 #include "gfx/core/thread-pool.h"
-
-#include <map>
-#include <memory>
 
 namespace gfx
 {

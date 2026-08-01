@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "gfx/core/types/barycentric-triangle.h"
 #include "gfx/math/vec2.h"
 #include "types/polygon.h"
 #include "types/triangle.h"

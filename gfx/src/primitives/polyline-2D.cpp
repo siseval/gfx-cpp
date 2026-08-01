@@ -1,7 +1,6 @@
 #include "gfx/primitives/polyline-2D.h"
 
-#include "gfx/core/types/barycentric-triangle.h"
-#include "../../inc/gfx/geometry/types/polygon.h"
+#include "gfx/geometry/types/polygon.h"
 #include "gfx/geometry/rasterize.h"
 #include "gfx/geometry/transform-2D.h"
 #include "gfx/geometry/triangulate.h"
