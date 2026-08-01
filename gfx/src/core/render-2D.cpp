@@ -39,27 +39,26 @@ namespace gfx
 
             std::vector colors { primitive->get_shader()->frag(input) };
 
-            // if (output.use_alphas)
-            // {
-            //     for (size_t i = 0; i < colors.size(); ++i)
-            //     {
-            //         colors[i].a = static_cast<uint8_t>(std::clamp(
-            //             static_cast<int>(colors[i].a * output.alphas[i]),
-            //             0,
-            //             255
-            //         ));
-            //     }
-            // }
+            if (output.use_alphas)
+            {
+                for (size_t i = 0; i < colors.size(); ++i)
+                {
+                    colors[i].a = static_cast<uint8_t>(std::clamp(
+                        static_cast<int>(colors[i].a * output.alphas[i]),
+                        0,
+                        255
+                    ));
+                }
+            }
 
             for (size_t i = 0; i < output.pixels.size(); ++i)
-            {
+            
                 _surface->write_pixel(
                     output.pixels[i],
                     colors[i],
                     primitive->get_depth(),
                     RenderSurface::BlendMode::ALPHA
                 );
-            }
         }
     }
 

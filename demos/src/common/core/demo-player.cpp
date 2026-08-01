@@ -17,7 +17,7 @@ namespace demos
 
     void DemoPlayer::init()
     {
-        renderer->load_font_directory("/Users/sigurdsevaldrud/documents/code/c++/sigfx/assets/fonts");
+        renderer->load_font_directory("/home/sisev/Projects/code/cpp/sigfx/assets/fonts");
 
         // demos.emplace_back(std::make_shared<TextDemo>(renderer, debug_viewer));
         demos.emplace_back(std::make_shared<ConstructDemo>(renderer, debug_viewer));

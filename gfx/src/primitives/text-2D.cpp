@@ -1,5 +1,7 @@
 #include "gfx/primitives/text-2D.h"
 
+#include <utility>
+
 #include "gfx/geometry/rasterize.h"
 #include "gfx/geometry/transform-2D.h"
 #include "gfx/geometry/triangulate.h"
@@ -126,50 +128,50 @@ namespace gfx
                 }()
             };
 
-            auto edges = _font->get_glyph_edges_multi_contour(codepoint);
-            for (auto& contour : edges)
+            // auto edges = _font->get_glyph_edges_multi_contour(codepoint);
+            // for (auto& contour : edges)
+            // {
+            //     for (auto& [v0, v1] : contour)
+            //     {
+            //         v0 = v0 * scale;
+            //         v1 = v1 * scale;
+            //
+            //         v0.x += pen.x - min.x + offset_x;
+            //         v1.x += pen.x - min.x + offset_x;
+            //
+            //         v0.y = -v0.y + ascent + pen.y - min.y;
+            //         v1.y = -v1.y + ascent + pen.y - min.y;
+            //
+            //         v0 = Transform2D::transform_point(v0, transform);
+            //         v1 = Transform2D::transform_point(v1, transform);
+            //     }
+            // }
+
+            // rasterize_glyph_triangulation(edges, output.pixels);
+            auto edges = _font->get_glyph_edges(codepoint);
+            for (auto& [v0, v1] : edges)
             {
-                for (auto& [v0, v1] : contour)
-                {
-                    v0 = v0 * scale;
-                    v1 = v1 * scale;
-
-                    v0.x += pen.x - min.x + offset_x;
-                    v1.x += pen.x - min.x + offset_x;
-
-                    v0.y = -v0.y + ascent + pen.y - min.y;
-                    v1.y = -v1.y + ascent + pen.y - min.y;
-
-                    v0 = Transform2D::transform_point(v0, transform);
-                    v1 = Transform2D::transform_point(v1, transform);
-                }
+                v0 = v0 * scale;
+                v1 = v1 * scale;
+            
+                v0.x += pen.x - min.x + offset_x;
+                v1.x += pen.x - min.x + offset_x;
+            
+                v0.y = -v0.y + ascent + pen.y - min.y;
+                v1.y = -v1.y + ascent + pen.y - min.y;
+            
+                v0 = Transform2D::transform_point(v0, transform);
+                v1 = Transform2D::transform_point(v1, transform);
             }
 
-            rasterize_glyph_triangulation(edges, output.pixels);
-            // auto edges = _font->get_glyph_edges(codepoint);
-            // for (auto& [v0, v1] : edges)
-            // {
-            //     v0 = v0 * scale;
-            //     v1 = v1 * scale;
-            //
-            //     v0.x += pen.x - min.x + offset_x;
-            //     v1.x += pen.x - min.x + offset_x;
-            //
-            //     v0.y = -v0.y + ascent + pen.y - min.y;
-            //     v1.y = -v1.y + ascent + pen.y - min.y;
-            //
-            //     v0 = Transform2D::transform_point(v0, transform);
-            //     v1 = Transform2D::transform_point(v1, transform);
-            // }
-
-            // if (_smoothing_radius > 0.0)
-            // {
-            //     rasterize_glyph_sdf(edges, output);
-            // }
-            // else
-            // {
-            //     rasterize_glyph(edges, output.pixels);
-            // }
+            if (_smoothing_radius > 0.0)
+            {
+                rasterize_glyph_sdf(edges, output);
+            }
+            else
+            {
+                rasterize_glyph(edges, output.pixels);
+            }
 
             pen.x += _font->get_glyph_advance(codepoint) * scale;
             i += bytes;

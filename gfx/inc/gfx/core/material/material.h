@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "gfx/core/material/fragment-shader.h"
 #include "gfx/core/material/texture.h"
 

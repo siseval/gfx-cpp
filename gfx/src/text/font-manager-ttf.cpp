@@ -8,23 +8,23 @@
 
 namespace gfx
 {
-    static int16_t read_s16(const std::uint8_t* data)
+    static int16_t read_s16(const uint8_t* data)
     {
         return static_cast<int16_t>(data[0]) << 8 | static_cast<int16_t>(data[1]);
     }
 
-    [[maybe_unused]] static int32_t read_s32(const std::uint8_t* data)
+    [[maybe_unused]] static int32_t read_s32(const uint8_t* data)
     {
         return static_cast<int32_t>(data[0]) << 24 | static_cast<int32_t>(data[1]) << 16 | static_cast<int32_t>(data[2])
             << 8 | static_cast<int32_t>(data[3]);
     }
 
-    static uint16_t read_u16(const std::uint8_t* data)
+    static uint16_t read_u16(const uint8_t* data)
     {
         return static_cast<uint16_t>(data[0]) << 8 | static_cast<uint16_t>(data[1]);
     }
 
-    static uint32_t read_u32(const std::uint8_t* data)
+    static uint32_t read_u32(const uint8_t* data)
     {
         return static_cast<uint32_t>(data[0]) << 24 | static_cast<uint32_t>(data[1]) << 16 | static_cast<uint32_t>(data[
             2]) << 8 | static_cast<uint32_t>(data[3]);
@@ -109,7 +109,7 @@ namespace gfx
             tables[tag] = { offset, length };
         }
 
-        constexpr std::string required_tables[5] { "head", "maxp", "loca", "glyf", "cmap" };
+        std::string required_tables[5] { "head", "maxp", "loca", "glyf", "cmap" };
         for (const auto& tag : required_tables)
         {
             if (!tables.contains(tag))
@@ -125,7 +125,7 @@ namespace gfx
             std::cerr << "Missing 'head' table.";
             return nullptr;
         }
-        const std::uint8_t* head_table { data + it_head->second.offset };
+        const uint8_t* head_table { data + it_head->second.offset };
         uint16_t units_per_em { read_u16(head_table + 18) };
         int16_t ascender { (read_s16(head_table + 40)) };
         int16_t descender { (read_s16(head_table + 42)) };
@@ -138,11 +138,11 @@ namespace gfx
             std::cerr << "Missing 'maxp' table.";
             return nullptr;
         }
-        const std::uint8_t* maxp_table { data + it_maxp->second.offset };
+        const uint8_t* maxp_table { data + it_maxp->second.offset };
         uint16_t num_glyphs { read_u16(maxp_table + 4) };
 
         auto it_loca { tables.find("loca") };
-        const std::uint8_t* loca_table { data + it_loca->second.offset };
+        const uint8_t* loca_table { data + it_loca->second.offset };
 
         auto it_cmap { tables.find("cmap") };
         if (it_cmap == tables.end())
@@ -151,21 +151,21 @@ namespace gfx
             return nullptr;
         }
 
-        const std::uint8_t* cmap_table { data + it_cmap->second.offset };
+        const uint8_t* cmap_table { data + it_cmap->second.offset };
         read_u16(cmap_table);
         uint16_t num_subtables { read_u16(cmap_table + 2) };
 
-        const std::uint8_t* cmap_format_4 { nullptr };
-        const std::uint8_t* cmap_format_12 { nullptr };
+        const uint8_t* cmap_format_4 { nullptr };
+        const uint8_t* cmap_format_12 { nullptr };
 
         for (uint16_t i = 0; i < num_subtables; ++i)
         {
-            const std::uint8_t* subtable_ptr { cmap_table + 4 + i * 8 };
+            const uint8_t* subtable_ptr { cmap_table + 4 + i * 8 };
             uint16_t platform_id { read_u16(subtable_ptr) };
             uint16_t encoding_id { read_u16(subtable_ptr + 2) };
             uint32_t offset { read_u32(subtable_ptr + 4) };
 
-            const std::uint8_t* subtable { cmap_table + offset };
+            const uint8_t* subtable { cmap_table + offset };
             uint16_t format { read_u16(subtable) };
 
             if (format == 4 && !cmap_format_4 && platform_id == 3 && encoding_id == 1)
@@ -192,7 +192,7 @@ namespace gfx
             std::cerr << "Missing 'glyf' table.";
             return nullptr;
         }
-        const std::uint8_t* glyf_table { data + it_glyf->second.offset };
+        const uint8_t* glyf_table { data + it_glyf->second.offset };
         std::size_t glyf_table_length { it_glyf->second.length };
 
         auto font { std::make_shared<FontTTF>(units_per_em, ascender, descender, line_gap, num_glyphs) };
@@ -406,7 +406,7 @@ namespace gfx
     }
 
     std::unordered_map<uint32_t, uint16_t> FontManagerTTF::parse_cmap_format_4(
-        const std::uint8_t* cmap_table,
+        const uint8_t* cmap_table,
         const uint32_t length
     )
     {
@@ -415,10 +415,10 @@ namespace gfx
         const uint16_t seg_count_x2 { read_u16(cmap_table + 6) };
         const uint16_t seg_count { static_cast<uint16_t>(seg_count_x2 / 2) };
 
-        const std::uint8_t* end_code_ptr { cmap_table + 14 };
-        const std::uint8_t* start_code_ptr { end_code_ptr + 2 + seg_count * 2 };
-        const std::uint8_t* id_delta_ptr { start_code_ptr + seg_count * 2 };
-        const std::uint8_t* id_range_offset_ptr { id_delta_ptr + seg_count * 2 };
+        const uint8_t* end_code_ptr { cmap_table + 14 };
+        const uint8_t* start_code_ptr { end_code_ptr + 2 + seg_count * 2 };
+        const uint8_t* id_delta_ptr { start_code_ptr + seg_count * 2 };
+        const uint8_t* id_range_offset_ptr { id_delta_ptr + seg_count * 2 };
 
         for (uint16_t i = 0; i < seg_count; ++i)
         {
@@ -437,7 +437,7 @@ namespace gfx
                 else
                 {
                     const uint32_t offset { id_range_offset / 2 + (c - start_code) - (seg_count - i) };
-                    const std::uint8_t* glyph_id_ptr { id_range_offset_ptr + i * 2 + offset * 2 };
+                    const uint8_t* glyph_id_ptr { id_range_offset_ptr + i * 2 + offset * 2 };
 
                     if (glyph_id_ptr + 1 < cmap_table + length)
                     {
@@ -459,7 +459,7 @@ namespace gfx
     }
 
     std::vector<uint32_t> FontManagerTTF::parse_loca_table(
-        const std::uint8_t* loca_table,
+        const uint8_t* loca_table,
         const uint16_t num_glyphs,
         const uint16_t index_to_loc_format
     )
@@ -487,7 +487,7 @@ namespace gfx
     }
 
     std::shared_ptr<FontTTF::GlyphTTF> FontManagerTTF::parse_glyph(
-        const std::uint8_t* glyf_table,
+        const uint8_t* glyf_table,
         const std::vector<uint32_t>& glyph_offsets,
         const uint16_t glyph_index
     )
@@ -501,7 +501,7 @@ namespace gfx
             return glyph;
         }
 
-        const std::uint8_t* glyph_ptr { glyf_table + offset_start };
+        const uint8_t* glyph_ptr { glyf_table + offset_start };
 
         const int16_t number_of_contours { read_s16(glyph_ptr) };
         glyph->bbox = {
@@ -514,7 +514,7 @@ namespace gfx
             return glyph;
         }
 
-        const std::uint8_t* ptr { glyph_ptr + 10 };
+        const uint8_t* ptr { glyph_ptr + 10 };
         std::vector<uint16_t> end_pts_of_contours;
 
         for (int i = 0; i < number_of_contours; ++i)

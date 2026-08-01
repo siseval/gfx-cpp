@@ -1,5 +1,7 @@
 #include "gfx/core/types/bounding-sphere.h"
 
+#include <algorithm>
+
 namespace gfx
 {
     BoundingSphere::BoundingSphere()

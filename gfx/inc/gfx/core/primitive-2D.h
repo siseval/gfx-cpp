@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "gfx/core/shader-2D.h"
 #include "gfx/core/types/color4.h"
 #include "gfx/core/types/obb-2D.h"

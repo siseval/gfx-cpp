@@ -1,5 +1,7 @@
 #include "gfx/geometry/rasterize.h"
 
+#include <algorithm>
+
 #include "gfx/geometry/types/triangle.h"
 
 

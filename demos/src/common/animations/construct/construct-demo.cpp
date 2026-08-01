@@ -475,7 +475,7 @@ namespace demos
 
         renderer->set_resolution(res360);
 
-        const std::string assets_dir { "/Users/sigurdsevaldrud/documents/code/c++/sigfx/assets/models/ImageToStl/" };
+        const std::string assets_dir { "/home/sisev/Projects/code/cpp/sigfx/assets/models/ImageToStl/" };
 
         const auto diffuse_shader { std::make_shared<DiffuseFragmentShader>() };
 

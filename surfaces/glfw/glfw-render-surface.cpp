@@ -101,6 +101,10 @@ void GLFWRenderSurface::present()
     glBindVertexArray(_vao);
     glBindTexture(GL_TEXTURE_2D, _texture);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    
+    int width, height;
+    glfwGetFramebufferSize(_window, &width, &height);
+    glViewport(0, 0, width, height);
 
     glfwSwapBuffers(_window);
     glfwPollEvents();
