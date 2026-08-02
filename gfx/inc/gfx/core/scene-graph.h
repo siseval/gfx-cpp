@@ -66,8 +66,6 @@ namespace gfx
 
     private:
 
-        static bool sphere_in_frustum(const BoundingBall<VectorType>& sphere, const Frustum& frustum);
-
         mutable std::vector<std::pair<std::shared_ptr<Primitive<VectorType>>, Transform<VectorType>>> _draw_queue;
         std::shared_ptr<SceneNode<VectorType>> _root;
         std::unordered_map<UUID, std::unique_ptr<SceneNode<VectorType>>> _nodes;
@@ -269,7 +267,7 @@ namespace gfx
                     )
                 };
 
-                if (!sphere_in_frustum(transformed_sphere, view_bounds))
+                if (!view_bounds.ball_in_view(transformed_sphere))
                 {
                     continue;
                 }
@@ -291,11 +289,5 @@ namespace gfx
     bool SceneGraph<VectorType>::contains_item(const std::shared_ptr<Primitive<VectorType>> item) const
     {
         return _nodes.contains(item->get_id());
-    }
-
-    template <typename VectorType>
-    bool SceneGraph<VectorType>::sphere_in_frustum(const BoundingBall<VectorType>& sphere, const Frustum& frustum)
-    {
-        return frustum.sphere_in_frustum(sphere.center, sphere.radius);
     }
 }
