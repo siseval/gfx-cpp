@@ -1,11 +1,8 @@
 set(GFX_CORE_SOURCES
-        primitive-2D.cpp
         render-2D.cpp
         render-3D.cpp
         render-engine.cpp
         render-surface.cpp
-        scene-graph-2D.cpp
-        scene-graph.cpp
         thread-pool.cpp
         camera.cpp
 )

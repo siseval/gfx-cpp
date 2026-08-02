@@ -178,6 +178,16 @@ namespace gfx
         {
             return { static_cast<int>(std::lround(x)), static_cast<int>(std::lround(y)) };
         }
+        
+        T min_element() const
+        {
+            return std::min(x, y);
+        }
+        
+        T max_element() const
+        {
+            return std::max(x, y);
+        }
 
         static Vec2<int> floor(const Vec2& v)
         {

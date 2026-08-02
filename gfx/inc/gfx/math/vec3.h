@@ -137,6 +137,16 @@ namespace gfx
             }
             return Vec3<double> { 0, -z, y }.normalize();
         }
+        
+        T min_element() const
+        {
+            return std::min(x, y, z);
+        }
+        
+        T max_element() const
+        {
+            return std::max(x, y, z);
+        }
 
         double length() const
         {

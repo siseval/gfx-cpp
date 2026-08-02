@@ -10,14 +10,12 @@ namespace gfx
 
         BoundingBall transformed(const VectorType& translation, const VectorType& scale) const;
 
-        VectorType center;
-        double radius;
+        VectorType center { VectorType::zero };
+        double radius { 0.0 };
     };
 
     template <typename VectorType>
-    BoundingBall<VectorType>::BoundingBall()
-        : center { 0, 0, 0 }
-        , radius(0) {}
+    BoundingBall<VectorType>::BoundingBall() {}
 
     template <typename VectorType>
     BoundingBall<VectorType>::BoundingBall(const VectorType center, const double radius)
@@ -30,6 +28,6 @@ namespace gfx
         const VectorType& scale
     ) const
     {
-        return BoundingBall { center + translation, radius * std::max({ scale.x, scale.y, scale.z }) };
+        return BoundingBall { center + translation, radius * scale.max_element() };
     }
 }
