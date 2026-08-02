@@ -4,9 +4,6 @@
 
 namespace gfx
 {
-    uint64_t part1;
-    uint64_t part2;
-
     UUID::UUID()
         : UUID(generate()) {}
 

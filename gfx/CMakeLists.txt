@@ -15,6 +15,8 @@ add_library(gfx
         inc/gfx/core/types/transform.h
         inc/gfx/math/oriented-box.h
         inc/gfx/core/types/view-bounds.h
+        inc/gfx/primitives/primitive-3D.h
+        inc/gfx/primitives/primitive-2D.h
 )
 
 file(GLOB_RECURSE GFX_SOURCES CONFIGURE_DEPENDS

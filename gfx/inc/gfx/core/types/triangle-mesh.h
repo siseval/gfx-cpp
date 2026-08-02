@@ -51,7 +51,7 @@ namespace gfx
         std::vector<Face> _faces;
 
         mutable Box<VectorType> _aabb;
-        mutable BoundingBall<VectorType> _bounding_sphere;
+        mutable BoundingBall<VectorType> _bounding_ball;
 
         mutable bool _aabb_dirty { true };
         mutable bool _bounding_sphere_dirty { true };
@@ -93,7 +93,7 @@ namespace gfx
     {
         if (!_bounding_sphere_dirty)
         {
-            return _bounding_sphere;
+            return _bounding_ball;
         }
 
         const Box<VectorType> aabb { get_aabb() };
@@ -110,9 +110,9 @@ namespace gfx
             }
         }
 
-        _bounding_sphere = BoundingBall(center, radius);
+        _bounding_ball = BoundingBall(center, radius);
         _bounding_sphere_dirty = false;
-        return _bounding_sphere;
+        return _bounding_ball;
     }
 
     template <typename VectorType>

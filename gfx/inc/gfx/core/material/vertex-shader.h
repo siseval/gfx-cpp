@@ -21,15 +21,15 @@ namespace gfx
 
         struct Input
         {
-            Vec3d pos;
-            Vec3d normal;
+            VectorType pos;
+            VectorType normal;
         };
 
         struct Output
         {
-            Vec3d xyz;
+            VectorType pos;
             double w;
-            Vec3d normal;
+            VectorType normal;
         };
 
         virtual ~VertexShader() = default;

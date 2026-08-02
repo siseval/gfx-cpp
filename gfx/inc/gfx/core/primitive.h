@@ -14,30 +14,26 @@ namespace gfx
     {
     public:
 
+        using RotationType = Transform<VectorType>::RotationType;
+
         virtual ~Primitive() = default;
 
         Primitive();
 
         virtual const TriangleMesh<VectorType>& get_mesh() const = 0;
 
-        void set_position(const VectorType& pos);
-        void set_position(double x, double y, double z);
-        void set_scale(const VectorType& s);
-        void set_scale(double x, double y, double z);
-        void set_rotation(const VectorType& rot);
-        void set_rotation(double x, double y, double z);
-        void set_rotation_degrees(const VectorType& rot);
-        void set_rotation_degrees(double x, double y, double z);
+        void set_position(VectorType pos);
+        void set_scale(VectorType s);
+        void set_rotation(RotationType rot);
         void set_color(const Color4& col);
         void set_color(double r, double g, double b, double a = 1.0);
-        void set_anchor(const VectorType& a);
+        void set_anchor(VectorType a);
         void set_material(const std::shared_ptr<Material>& mat, size_t slot = 0);
         void set_vertex_shader(const std::shared_ptr<VertexShader<VectorType>>& shader);
 
         VectorType get_position() const;
         VectorType get_scale() const;
-        VectorType get_rotation() const;
-        VectorType get_rotation_degrees() const;
+        RotationType get_rotation() const;
         Color4 get_color() const;
         VectorType get_anchor() const;
         std::shared_ptr<Material> get_material(size_t slot = 0) const;
@@ -49,7 +45,7 @@ namespace gfx
 
         UUID get_id() const;
         Transform<VectorType> get_transform() const;
-        int64_t get_transform_version() const;
+        int64_t get_transform_generation() const;
 
     protected:
 
@@ -60,6 +56,7 @@ namespace gfx
         bool is_transform_dirty() const;
 
         void increment_transform_generation();
+        void transform_updated();
 
         UUID _id;
 
@@ -69,7 +66,7 @@ namespace gfx
         Color4 _color;
 
         VectorType _position { VectorType::zero() };
-        VectorType _rotation { VectorType::zero() };
+        RotationType _rotation { RotationType::zero() };
         VectorType _scale { VectorType::one() };
         VectorType _anchor { VectorType::zero() };
 
@@ -87,71 +84,24 @@ namespace gfx
         : _id(UUID::generate()) {}
 
     template <typename VectorType>
-    void Primitive<VectorType>::set_position(const VectorType& pos)
+    void Primitive<VectorType>::set_position(const VectorType pos)
     {
         _position = pos;
-        set_transform_dirty(true);
-        increment_transform_generation();
+        transform_updated();
     }
 
     template <typename VectorType>
-    void Primitive<VectorType>::set_position(const double x, const double y, const double z)
-    {
-        _position = VectorType { x, y, z };
-        set_transform_dirty(true);
-        increment_transform_generation();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_scale(const VectorType& s)
+    void Primitive<VectorType>::set_scale(const VectorType s)
     {
         _scale = s;
-        set_transform_dirty(true);
-        increment_transform_generation();
+        transform_updated();
     }
 
     template <typename VectorType>
-    void Primitive<VectorType>::set_scale(const double x, const double y, const double z)
-    {
-        _scale = VectorType { x, y, z };
-        set_transform_dirty(true);
-        increment_transform_generation();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_rotation(const VectorType& rot)
+    void Primitive<VectorType>::set_rotation(const RotationType rot)
     {
         _rotation = rot;
-        set_transform_dirty(true);
-        increment_transform_generation();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_rotation(const double x, const double y, const double z)
-    {
-        _rotation = VectorType { x, y, z };
-        set_transform_dirty(true);
-        increment_transform_generation();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_rotation_degrees(const VectorType& rot)
-    {
-        _rotation = VectorType {
-            rot.x * std::numbers::pi / 180,
-            rot.y * std::numbers::pi / 180,
-            rot.z * std::numbers::pi / 180
-        };
-        set_transform_dirty(true);
-        increment_transform_generation();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_rotation_degrees(const double x, const double y, const double z)
-    {
-        _rotation = VectorType { x * std::numbers::pi / 180, y * std::numbers::pi / 180, z * std::numbers::pi / 180 };
-        set_transform_dirty(true);
-        increment_transform_generation();
+        transform_updated();
     }
 
     template <typename VectorType>
@@ -167,11 +117,10 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void Primitive<VectorType>::set_anchor(const VectorType& a)
+    void Primitive<VectorType>::set_anchor(const VectorType a)
     {
         _anchor = a;
-        set_transform_dirty(true);
-        increment_transform_generation();
+        transform_updated();
     }
 
     template <typename VectorType>
@@ -200,19 +149,9 @@ namespace gfx
     }
 
     template <typename VectorType>
-    VectorType Primitive<VectorType>::get_rotation() const
+    Primitive<VectorType>::RotationType Primitive<VectorType>::get_rotation() const
     {
         return _rotation;
-    }
-
-    template <typename VectorType>
-    VectorType Primitive<VectorType>::get_rotation_degrees() const
-    {
-        return VectorType {
-            _rotation.x * 180 / std::numbers::pi,
-            _rotation.y * 180 / std::numbers::pi,
-            _rotation.z * 180 / std::numbers::pi
-        };
     }
 
     template <typename VectorType>
@@ -285,7 +224,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    int64_t Primitive<VectorType>::get_transform_version() const
+    int64_t Primitive<VectorType>::get_transform_generation() const
     {
         return _transform_generation;
     }
@@ -318,5 +257,12 @@ namespace gfx
     void Primitive<VectorType>::increment_transform_generation()
     {
         _transform_generation++;
+    }
+    
+    template <typename VectorType>
+    void Primitive<VectorType>::transform_updated()
+    {
+        set_transform_dirty(true);
+        increment_transform_generation();
     }
 }

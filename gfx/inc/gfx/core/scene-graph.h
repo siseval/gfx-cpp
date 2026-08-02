@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stack>
+
 #include "gfx/core/primitive.h"
 #include "../geometry/types/frustum.h"
 #include "gfx/core/types/uuid.h"
@@ -97,7 +99,7 @@ namespace gfx
             {
                 continue;
             }
-            const int64_t current_version { node->primitive->get_transform_version() };
+            const int64_t current_version { node->primitive->get_transform_generation() };
             if (current_version != node->cached_transform_version)
             {
                 return true;
@@ -138,14 +140,14 @@ namespace gfx
 
             if (node->primitive)
             {
-                node->global_transform = parent_transform * node->primitive->get_transform();
+                node->global_transform = parent_transform.combine(node->primitive->get_transform());
             }
             else
             {
                 node->global_transform = parent_transform;
             }
 
-            node->cached_transform_version = node->primitive ? node->primitive->get_transform_version() : 0;
+            node->cached_transform_version = node->primitive ? node->primitive->get_transform_generation() : 0;
 
             for (const auto& child : node->children)
             {
