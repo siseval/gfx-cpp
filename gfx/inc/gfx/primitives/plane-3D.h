@@ -1,11 +1,11 @@
 #pragma once
 
-#include "gfx/core/primitive-3D.h"
+#include "gfx/core/primitive.h"
 #include "gfx/math/vec2.h"
 
 namespace gfx
 {
-    class Plane3D final : public Primitive3D
+    class Plane3D final : public Primitive
     {
     public:
 

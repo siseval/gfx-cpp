@@ -30,7 +30,7 @@ namespace gfx
         _render2D->add_item(primitive);
     }
 
-    void RenderEngine::add_primitive(const std::shared_ptr<Primitive3D> primitive) const
+    void RenderEngine::add_primitive(const std::shared_ptr<Primitive> primitive) const
     {
         _render3D->add_item(primitive);
     }
@@ -40,7 +40,7 @@ namespace gfx
         _render2D->remove_item(primitive);
     }
 
-    void RenderEngine::remove_primitive(const std::shared_ptr<Primitive3D> primitive) const
+    void RenderEngine::remove_primitive(const std::shared_ptr<Primitive> primitive) const
     {
         _render3D->remove_item(primitive);
     }
@@ -50,7 +50,7 @@ namespace gfx
         return _render2D->contains_item(primitive);
     }
 
-    bool RenderEngine::contains_primitive(const std::shared_ptr<Primitive3D> primitive) const
+    bool RenderEngine::contains_primitive(const std::shared_ptr<Primitive> primitive) const
     {
         return _render3D->contains_item(primitive);
     }

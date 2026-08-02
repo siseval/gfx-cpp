@@ -1,10 +1,8 @@
-#include "gfx/core/types/frustum.h"
+#include <gfx/geometry/types/frustum.h>
 
 namespace gfx
 {
-    Frustum::Plane::Plane()
-        : normal { 0, 0, 0 }
-        , d(0) {}
+    Frustum::Plane::Plane() {}
 
     Frustum::Plane::Plane(const Vec3d normal, const double d)
         : normal(normal)

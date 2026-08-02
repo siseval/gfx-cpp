@@ -4,9 +4,9 @@
 #include <memory>
 
 #include "gfx/core/camera.h"
-#include "gfx/core/primitive-3D.h"
+#include "gfx/core/primitive.h"
 #include "gfx/core/render-surface.h"
-#include "gfx/core/scene-graph-3D.h"
+#include "gfx/core/scene-graph.h"
 #include "gfx/core/thread-pool.h"
 
 namespace gfx
@@ -21,12 +21,12 @@ namespace gfx
         void clear_frame() const;
         void present_frame() const;
 
-        void add_item(const std::shared_ptr<Primitive3D>& item) const;
-        void remove_item(const std::shared_ptr<Primitive3D>& item) const;
-        bool contains_item(const std::shared_ptr<Primitive3D>& item) const;
+        void add_item(const std::shared_ptr<Primitive>& item) const;
+        void remove_item(const std::shared_ptr<Primitive>& item) const;
+        bool contains_item(const std::shared_ptr<Primitive>& item) const;
         void clear_items() const;
 
-        std::shared_ptr<SceneGraph3D> get_scene_graph() const;
+        std::shared_ptr<SceneGraph> get_scene_graph() const;
         std::shared_ptr<RenderSurface> get_render_surface() const;
 
         void set_camera(const Camera& cam);
@@ -163,7 +163,7 @@ namespace gfx
         Vec3d _light_dir;
         double _ambient_light;
 
-        std::shared_ptr<SceneGraph3D> _scene_graph;
+        std::shared_ptr<SceneGraph> _scene_graph;
         std::shared_ptr<RenderSurface> _surface;
 
         std::vector<std::shared_ptr<FragmentShader>> _fullscreen_shaders;

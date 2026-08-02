@@ -15,7 +15,7 @@ namespace gfx
 {
     Render3D::Render3D(const std::shared_ptr<RenderSurface>& surface)
         : _ambient_light(0.0)
-        , _scene_graph(std::make_shared<SceneGraph3D>())
+        , _scene_graph(std::make_shared<SceneGraph>())
         , _surface(surface)
         , _thread_pool(std::make_shared<ThreadPool>(std::thread::hardware_concurrency())) {}
 
@@ -479,17 +479,17 @@ namespace gfx
         _surface->present();
     }
 
-    void Render3D::add_item(const std::shared_ptr<Primitive3D>& item) const
+    void Render3D::add_item(const std::shared_ptr<Primitive>& item) const
     {
         _scene_graph->add_item(item);
     }
 
-    void Render3D::remove_item(const std::shared_ptr<Primitive3D>& item) const
+    void Render3D::remove_item(const std::shared_ptr<Primitive>& item) const
     {
         _scene_graph->remove_item(item);
     }
 
-    bool Render3D::contains_item(const std::shared_ptr<Primitive3D>& item) const
+    bool Render3D::contains_item(const std::shared_ptr<Primitive>& item) const
     {
         return _scene_graph->contains_item(item);
     }
@@ -499,7 +499,7 @@ namespace gfx
         _scene_graph->clear();
     }
 
-    std::shared_ptr<SceneGraph3D> Render3D::get_scene_graph() const
+    std::shared_ptr<SceneGraph> Render3D::get_scene_graph() const
     {
         return _scene_graph;
     }

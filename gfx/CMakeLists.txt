@@ -13,7 +13,8 @@ add_library(gfx
         inc/gfx/geometry/types/triangle.h
         inc/gfx/core/types/transform.h
         inc/gfx/core/types/transform.h
-        inc/gfx/core/types/obb.h
+        inc/gfx/math/oriented-box.h
+        inc/gfx/core/types/view-bounds.h
 )
 
 file(GLOB_RECURSE GFX_SOURCES CONFIGURE_DEPENDS

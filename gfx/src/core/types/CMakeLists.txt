@@ -3,7 +3,7 @@ set(GFX_CORE_TYPES_SOURCES
         color4.cpp
         obb-2D.cpp
         uuid.cpp
-        frustum.cpp
+        ../../geometry/types/frustum.cpp
         barycentric-triangle.cpp
         triangle-mesh.cpp
 )

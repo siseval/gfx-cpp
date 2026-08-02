@@ -1,10 +1,10 @@
 #pragma once
 
-#include "gfx/core/primitive-3D.h"
+#include "gfx/core/primitive.h"
 
 namespace gfx
 {
-    class Polygon3D final : public Primitive3D
+    class Polygon3D final : public Primitive
     {
     public:
 

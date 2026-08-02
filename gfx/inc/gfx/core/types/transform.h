@@ -1,83 +1,71 @@
 #pragma once
 
+#include <cmath>
+#include <concepts>
+#include <type_traits>
 #include "gfx/math/matrix.h"
-#include "gfx/math/vec2.h"
-#include "gfx/math/vec3.h"
 
 namespace gfx
 {
     template <typename VectorType>
-        requires (std::same_as<VectorType, Vec2d> || std::same_as<VectorType, Vec3d>)
+        requires (std::same_as<VectorType, Vec3d> || std::same_as<VectorType, Vec2d>)
     class Transform
     {
     public:
 
-        using RotationType = std::conditional_t<std::same_as<VectorType, Vec2d>, double, Vec3d>;
-        using MatrixType = std::conditional_t<std::same_as<VectorType, Vec2d>, Matrix2x2d, Matrix3x3d>;
+        using RotationType = std::conditional_t<std::same_as<VectorType, Vec3d>, Vec3d, double>;
+        using MatrixType = std::conditional_t<std::same_as<VectorType, Vec3d>, Matrix4x4d, Matrix3x3d>;
+
+        Transform()
+            : _matrix(MatrixType::identity()) {}
+
+        explicit Transform(const MatrixType& matrix)
+            : _matrix(matrix) {}
+
+        const MatrixType& get_matrix() const
+        {
+            return _matrix;
+        }
 
         VectorType transform_coordinate(const VectorType& coordinate) const
         {
             if constexpr (std::same_as<VectorType, Vec2d>)
             {
                 return Vec2d {
-                    _scale_rotation(0, 0) * coordinate.x + _scale_rotation(0, 1) * coordinate.y + _translation.x,
-                    _scale_rotation(1, 0) * coordinate.x + _scale_rotation(1, 1) * coordinate.y + _translation.y
+                    _matrix(0, 0) * coordinate.x + _matrix(0, 1) * coordinate.y + _matrix(0, 2) * 1.0,
+                    _matrix(1, 0) * coordinate.x + _matrix(1, 1) * coordinate.y + _matrix(1, 2) * 1.0
                 };
             }
             else
             {
                 return Vec3d {
-                    _scale_rotation(0, 0) * coordinate.x + _scale_rotation(0, 1) * coordinate.y + _scale_rotation(0, 2)
-                    * coordinate.z + _translation.x,
-                    _scale_rotation(1, 0) * coordinate.x + _scale_rotation(1, 1) * coordinate.y + _scale_rotation(1, 2)
-                    * coordinate.z + _translation.y,
-                    _scale_rotation(2, 0) * coordinate.x + _scale_rotation(2, 1) * coordinate.y + _scale_rotation(2, 2)
-                    * coordinate.z + _translation.z
+                    _matrix(0, 0) * coordinate.x + _matrix(0, 1) * coordinate.y + _matrix(0, 2) * coordinate.z +
+                    _matrix(0, 3) * 1.0,
+                    _matrix(1, 0) * coordinate.x + _matrix(1, 1) * coordinate.y + _matrix(1, 2) * coordinate.z +
+                    _matrix(1, 3) * 1.0,
+                    _matrix(2, 0) * coordinate.x + _matrix(2, 1) * coordinate.y + _matrix(2, 2) * coordinate.z +
+                    _matrix(2, 3) * 1.0
                 };
             }
         }
 
-        void set_translation(const VectorType translation)
+        Transform combine(const Transform& child) const
         {
-            _translation = translation;
+            return Transform(_matrix * child._matrix);
         }
 
-        void apply_scale(const VectorType& scale)
-        {
-            if constexpr (std::same_as<VectorType, Vec2d>)
-            {
-                Matrix2x2d scale_matrix {
-                    { scale.x, 0.0 },
-                    { 0.0, scale.y }
-                };
-
-                _scale_rotation = _scale_rotation * scale_matrix;
-            }
-            else
-            {
-                Matrix3x3d scale_matrix {
-                    { scale.x, 0.0, 0.0 },
-                    { 0.0, scale.y, 0.0 },
-                    { 0.0, 0.0, scale.z }
-                };
-
-                _scale_rotation = _scale_rotation * scale_matrix;
-            }
-        }
-
-        void apply_rotation(const RotationType& rotation)
+        void set_transform(const VectorType& translation, const RotationType& rotation, const VectorType& scale)
         {
             if constexpr (std::same_as<VectorType, Vec2d>)
             {
                 double cos_angle = std::cos(rotation);
                 double sin_angle = std::sin(rotation);
 
-                Matrix2x2d rotation_matrix {
-                    { cos_angle, -sin_angle },
-                    { sin_angle, cos_angle }
+                _matrix = MatrixType {
+                    { scale.x * cos_angle, scale.y * -sin_angle, translation.x },
+                    { scale.x * sin_angle, scale.y * cos_angle, translation.y },
+                    { 0.0, 0.0, 1.0 }
                 };
-
-                _scale_rotation = _scale_rotation * rotation_matrix;
             }
             else
             {
@@ -88,39 +76,36 @@ namespace gfx
                 const double cos_z = std::cos(rotation.z);
                 const double sin_z = std::sin(rotation.z);
 
-                Matrix3x3d rotation_matrix {
+                _matrix = MatrixType {
                     {
-                        (cos_y * cos_z),
-                        (cos_z * sin_x * sin_y - cos_x * sin_z),
-                        (cos_x * cos_z * sin_y + sin_x * sin_z)
+                        scale.x * (cos_y * cos_z),
+                        scale.y * (cos_z * sin_x * sin_y - cos_x * sin_z),
+                        scale.z * (cos_x * cos_z * sin_y + sin_x * sin_z),
+                        translation.x
                     },
                     {
-                        (cos_y * sin_z),
-                        (cos_x * cos_z + sin_x * sin_y * sin_z),
-                        (cos_x * sin_y * sin_z - cos_z * sin_x)
+                        scale.x * (cos_y * sin_z),
+                        scale.y * (cos_x * cos_z + sin_x * sin_y * sin_z),
+                        scale.z * (cos_x * sin_y * sin_z - cos_z * sin_x),
+                        translation.y
                     },
-                    {
-                        (-sin_y),
-                        (cos_y * sin_x),
-                        (cos_x * cos_y)
+                    { 
+                        scale.x * -sin_y, 
+                        scale.y * (cos_y * sin_x), 
+                        scale.z * (cos_x * cos_y), translation.z 
+                    },
+                    { 
+                        0.0, 
+                        0.0, 
+                        0.0, 
+                        1.0 
                     }
                 };
-
-                _scale_rotation = _scale_rotation * rotation_matrix;
             }
-        }
-
-        Transform combine(const Transform& child) const
-        {
-            return Transform {
-                ._scale_rotation = _scale_rotation * child._scale_rotation,
-                ._translation    = transform_coordinate(child._translation)
-            };
         }
 
     private:
 
-        VectorType _translation;
-        MatrixType _scale_rotation;
+        MatrixType _matrix;
     };
 }

@@ -1,7 +1,7 @@
 #include <stack>
 #include <utility>
 
-#include "gfx/core/scene-graph-3D.h"
+#include "gfx/core/scene-graph.h"
 
 #include <ranges>
 
@@ -9,21 +9,21 @@
 
 namespace gfx
 {
-    SceneGraph3D::SceneGraph3D()
-        : _root(std::make_shared<SceneNode3D>(nullptr))
-        , _nodes(std::unordered_map<UUID, std::shared_ptr<SceneNode3D>>()) {}
+    SceneGraph::SceneGraph3D()
+        : _root(std::make_shared<SceneNode>(nullptr))
+        , _nodes(std::unordered_map<UUID, std::shared_ptr<SceneNode>>()) {}
 
-    std::shared_ptr<SceneNode3D> SceneGraph3D::get_root() const
+    std::shared_ptr<SceneNode> SceneGraph::get_root() const
     {
         return _root;
     }
 
-    void SceneGraph3D::set_root_transform(const Matrix4x4d& transform) const
+    void SceneGraph::set_root_transform(const Matrix4x4d& transform) const
     {
         _root->global_transform = transform;
     }
 
-    bool SceneGraph3D::transforms_dirty() const
+    bool SceneGraph::transforms_dirty() const
     {
         for (const auto& node : _nodes | std::views::values)
         {
@@ -40,7 +40,7 @@ namespace gfx
         return false;
     }
 
-    Matrix4x4d SceneGraph3D::get_global_transform(const std::shared_ptr<Primitive3D> primitive) const
+    Matrix4x4d SceneGraph::get_global_transform(const std::shared_ptr<Primitive> primitive) const
     {
         const auto node { _nodes.contains(primitive->get_id()) ? _nodes.at(primitive->get_id()) : nullptr };
         if (node == nullptr)
@@ -55,9 +55,9 @@ namespace gfx
         return node->global_transform;
     }
 
-    void SceneGraph3D::update_global_transforms() const
+    void SceneGraph::update_global_transforms() const
     {
-        std::stack<std::pair<std::shared_ptr<SceneNode3D>, Matrix4x4d>> stack;
+        std::stack<std::pair<std::shared_ptr<SceneNode>, Matrix4x4d>> stack;
 
         stack.push({ get_root(), get_root()->global_transform });
 
@@ -84,14 +84,14 @@ namespace gfx
         }
     }
 
-    std::vector<std::pair<std::shared_ptr<Primitive3D>, Matrix4x4d>> SceneGraph3D::get_global_transforms()
+    std::vector<std::pair<std::shared_ptr<Primitive>, Matrix4x4d>> SceneGraph::get_global_transforms()
     {
         if (transforms_dirty())
         {
             update_global_transforms();
         }
 
-        std::vector<std::pair<std::shared_ptr<Primitive3D>, Matrix4x4d>> transforms;
+        std::vector<std::pair<std::shared_ptr<Primitive>, Matrix4x4d>> transforms;
         for (const auto& node : _nodes | std::views::values)
         {
             if (node->primitive != nullptr)
@@ -103,9 +103,9 @@ namespace gfx
         return transforms;
     }
 
-    void SceneGraph3D::add_item(const std::shared_ptr<Primitive3D> item, const std::shared_ptr<Primitive3D> parent)
+    void SceneGraph::add_item(const std::shared_ptr<Primitive> item, const std::shared_ptr<Primitive> parent)
     {
-        const auto new_node { std::make_shared<SceneNode3D>(item) };
+        const auto new_node { std::make_shared<SceneNode>(item) };
         if (_nodes.contains(new_node->get_id()))
         {
             return;
@@ -123,12 +123,12 @@ namespace gfx
         _root->children.push_back(new_node);
     }
 
-    void SceneGraph3D::add_item(const std::shared_ptr<Primitive3D> item)
+    void SceneGraph::add_item(const std::shared_ptr<Primitive> item)
     {
         add_item(item, nullptr);
     }
 
-    void SceneGraph3D::remove_item(const std::shared_ptr<Primitive3D> item)
+    void SceneGraph::remove_item(const std::shared_ptr<Primitive> item)
     {
         if (!_nodes.contains(item->get_id()))
         {
@@ -137,12 +137,12 @@ namespace gfx
 
         std::erase_if(
             _nodes[item->get_id()]->parent->children,
-            [item](const std::shared_ptr<SceneNode3D> node) {
+            [item](const std::shared_ptr<SceneNode> node) {
                 return node->get_id() == item->get_id();
             }
         );
 
-        std::stack<std::shared_ptr<SceneNode3D>> stack;
+        std::stack<std::shared_ptr<SceneNode>> stack;
         stack.push(_nodes[item->get_id()]);
         while (!stack.empty())
         {
@@ -158,13 +158,13 @@ namespace gfx
         }
     }
 
-    void SceneGraph3D::clear()
+    void SceneGraph::clear()
     {
         _root->children.clear();
         _nodes.clear();
     }
 
-    std::vector<std::pair<std::shared_ptr<Primitive3D>, Matrix4x4d>>& SceneGraph3D::get_draw_queue(
+    std::vector<std::pair<std::shared_ptr<Primitive>, Matrix4x4d>>& SceneGraph::get_draw_queue(
         const Frustum& frustum
     ) const
     {
@@ -198,17 +198,17 @@ namespace gfx
         return _draw_queue;
     }
 
-    int SceneGraph3D::num_items() const
+    int SceneGraph::num_items() const
     {
         return _nodes.size();
     }
 
-    bool SceneGraph3D::contains_item(const std::shared_ptr<Primitive3D> item) const
+    bool SceneGraph::contains_item(const std::shared_ptr<Primitive> item) const
     {
         return _nodes.contains(item->get_id());
     }
 
-    bool SceneGraph3D::sphere_in_frustum(const BoundingBall& sphere, const Frustum& frustum)
+    bool SceneGraph::sphere_in_frustum(const BoundingBall& sphere, const Frustum& frustum)
     {
         return frustum.sphere_in_frustum(sphere.center, sphere.radius);
     }

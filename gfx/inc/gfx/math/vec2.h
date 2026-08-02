@@ -28,12 +28,17 @@ namespace gfx
             : x(v)
             , y(v) {}
 
-        static Vec2 zero()
+        static constexpr Vec2 zero()
         {
             return { 0, 0 };
         }
+        
+        static constexpr Vec2 one()
+        {
+            return { 1, 1 };
+        }
 
-        static Vec2 min()
+        static constexpr Vec2 min()
         {
             return Vec2 {
                 std::numeric_limits<T>::min(),
@@ -41,7 +46,7 @@ namespace gfx
             };
         }
         
-        static Vec2 max()
+        static constexpr Vec2 max()
         {
             return Vec2 {
                 std::numeric_limits<T>::max(),

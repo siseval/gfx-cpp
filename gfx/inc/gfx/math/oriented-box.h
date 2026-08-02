@@ -5,16 +5,16 @@
 namespace gfx
 {
     template <typename VectorType>
-    struct OBB
+    struct OrientedBox
     {
         VectorType origin;
         VectorType side_x;
         VectorType side_y;
         VectorType side_z;
 
-        OBB();
-        OBB(VectorType origin, VectorType side_x, VectorType side_y, VectorType side_z);
-        OBB(const OBB& other);
+        OrientedBox();
+        OrientedBox(VectorType origin, VectorType side_x, VectorType side_y, VectorType side_z);
+        OrientedBox(const OrientedBox& other);
 
         VectorType get_center() const;
         VectorType get_extent() const;
@@ -23,14 +23,14 @@ namespace gfx
     };
 
     template <typename VectorType>
-    OBB<VectorType>::OBB()
+    OrientedBox<VectorType>::OrientedBox()
         : origin { 0, 0, 0 }
         , side_x { 0, 0, 0 }
         , side_y { 0, 0, 0 }
         , side_z { 0, 0, 0 } {}
 
     template <typename VectorType>
-    OBB<VectorType>::OBB(
+    OrientedBox<VectorType>::OrientedBox(
         const VectorType origin,
         const VectorType side_x,
         const VectorType side_y,
@@ -42,26 +42,26 @@ namespace gfx
         , side_z(side_z) {}
 
     template <typename VectorType>
-    OBB<VectorType>::OBB(const OBB& other)
+    OrientedBox<VectorType>::OrientedBox(const OrientedBox& other)
         : origin(other.origin)
         , side_x(other.side_x)
         , side_y(other.side_y)
         , side_z(other.side_z) {}
 
     template <typename VectorType>
-    VectorType OBB<VectorType>::get_center() const
+    VectorType OrientedBox<VectorType>::get_center() const
     {
         return origin + side_x * 0.5 + side_y * 0.5 + side_z * 0.5;
     }
 
     template <typename VectorType>
-    VectorType OBB<VectorType>::get_extent() const
+    VectorType OrientedBox<VectorType>::get_extent() const
     {
         return VectorType { side_x.length(), side_y.length(), side_z.length() };
     }
 
     template <typename VectorType>
-    VectorType OBB<VectorType>::get_sample_coords(const VectorType point) const
+    VectorType OrientedBox<VectorType>::get_sample_coords(const VectorType point) const
     {
         const VectorType d { point - origin };
 
@@ -73,7 +73,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    std::vector<VectorType> OBB<VectorType>::get_corners() const
+    std::vector<VectorType> OrientedBox<VectorType>::get_corners() const
     {
         return {
             origin,

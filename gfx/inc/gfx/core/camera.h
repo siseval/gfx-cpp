@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gfx/core/types/frustum.h"
+#include "../geometry/types/frustum.h"
 #include "gfx/math/matrix.h"
 #include "gfx/math/vec3.h"
 

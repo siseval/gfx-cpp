@@ -26,7 +26,7 @@ namespace gfx
             }
         }
 
-        static Matrix identity()
+        static constexpr Matrix identity()
         {
             Matrix result;
             for (int r = 0; r < ROWS; ++r)
@@ -39,7 +39,7 @@ namespace gfx
             return result;
         }
 
-        static Matrix zero()
+        static constexpr Matrix zero()
         {
             Matrix result;
             for (int r = 0; r < ROWS; ++r)

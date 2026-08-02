@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gfx/core/primitive-2D.h"
-#include "gfx/core/primitive-3D.h"
+#include "gfx/core/primitive.h"
 #include "gfx/core/render-2D.h"
 #include "gfx/core/render-3D.h"
 #include "gfx/core/render-surface.h"
@@ -19,11 +19,11 @@ namespace gfx
         void clear_frame() const;
 
         void add_primitive(std::shared_ptr<Primitive2D> primitive) const;
-        void add_primitive(std::shared_ptr<Primitive3D> primitive) const;
+        void add_primitive(std::shared_ptr<Primitive> primitive) const;
         void remove_primitive(std::shared_ptr<Primitive2D> primitive) const;
-        void remove_primitive(std::shared_ptr<Primitive3D> primitive) const;
+        void remove_primitive(std::shared_ptr<Primitive> primitive) const;
         bool contains_primitive(std::shared_ptr<Primitive2D> primitive) const;
-        bool contains_primitive(std::shared_ptr<Primitive3D> primitive) const;
+        bool contains_primitive(std::shared_ptr<Primitive> primitive) const;
         void clear_scene() const;
         void clear_3D_scene() const;
         void clear_2D_scene() const;
