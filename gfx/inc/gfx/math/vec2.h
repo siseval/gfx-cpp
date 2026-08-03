@@ -20,10 +20,6 @@ namespace gfx
             : x(x)
             , y(y) {}
 
-        Vec2(const Vec2& other)
-            : x(other.x)
-            , y(other.y) {}
-
         explicit Vec2(T v)
             : x(v)
             , y(v) {}

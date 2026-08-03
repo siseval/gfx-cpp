@@ -113,7 +113,7 @@ namespace gfx
     using Box2d = Box<Vec2d>;
     using Box2i = Box<Vec2i>;
     using Box2l = Box<Vec2l>;
-    
+
     using Box3d = Box<Vec3d>;
     using Box3i = Box<Vec3i>;
     using Box3l = Box<Vec3l>;

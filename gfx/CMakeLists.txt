@@ -11,10 +11,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_library(gfx
         inc/gfx/geometry/types/triangle.h
-        inc/gfx/core/types/transform.h
-        inc/gfx/core/types/transform.h
-        inc/gfx/math/oriented-box.h
-        inc/gfx/core/types/view-bounds.h
+        inc/gfx/core/transform.h
+        inc/gfx/geometry/types/oriented-box.h
+        inc/gfx/core/view/view-bounds.h
+        inc/gfx/core/view/view.h
+        inc/gfx/core/view/projection.h
+        inc/gfx/projections/perspective-projection.h
+        inc/gfx/core/view/viewport.h
+        inc/gfx/core/view/projection.h
 )
 
 file(GLOB_RECURSE GFX_SOURCES CONFIGURE_DEPENDS

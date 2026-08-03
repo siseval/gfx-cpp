@@ -1,15 +1,13 @@
 #pragma once
 
-#include "gfx/math/matrix.h"
-#include "gfx/math/vec2.h"
-#include "gfx/math/vec3.h"
+#include "gfx/core/transform.h"
 
 namespace gfx
 {
     template <typename VectorType>
     class VertexShader
     {
-        using MatrixType = std::conditional_t<std::same_as<VectorType, Vec2d>, Matrix3x3d, Matrix4x4d>;
+        using MatrixType = Transform<VectorType>::MatrixType;
         
     public:
 

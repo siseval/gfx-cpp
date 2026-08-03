@@ -350,12 +350,12 @@ namespace gfx
     //         static_cast<double>(resolution.y)
     //     };
     //
-    //     const Camera &camera { get_camera() };
-    //     const Matrix4x4d &view_matrix { camera.get_view_matrix() };
-    //     const Matrix4x4d &projection_matrix { camera.get_projection_matrix(aspect_ratio) };
+    //     const Camera &view { get_camera() };
+    //     const Matrix4x4d &view_matrix { view.get_view_matrix() };
+    //     const Matrix4x4d &projection_matrix { view.get_projection_matrix(aspect_ratio) };
     //     const Matrix4x4d &vp_matrix { projection_matrix * view_matrix };
     //
-    //     const auto &draw_queue { scene_graph->get_draw_queue(camera.get_frustum(aspect_ratio)) };
+    //     const auto &draw_queue { scene_graph->get_draw_queue(view.get_frustum(aspect_ratio)) };
     //     for (const auto &[primitive, transform] : draw_queue)
     //     {
     //         for (const auto &material : primitive->get_materials())

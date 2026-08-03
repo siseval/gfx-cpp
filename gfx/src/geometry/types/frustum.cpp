@@ -2,8 +2,6 @@
 
 namespace gfx
 {
-    Frustum::Plane::Plane() {}
-
     Frustum::Plane::Plane(const Vec3d normal, const double d)
         : normal(normal)
         , d(d) {}
@@ -12,8 +10,6 @@ namespace gfx
     {
         return Vec3d::dot(normal, point) + d;
     }
-
-    Frustum::Frustum() {}
 
     Frustum::Frustum(
         const Plane& top,
@@ -30,17 +26,17 @@ namespace gfx
         , near(near)
         , far(far) {}
 
-    bool Frustum::point_in_frustum(const Vec3d& point) const
+    bool Frustum::contains(const Vec3d point) const
     {
         return top.signed_distance_to_point(point) >= 0 && bottom.signed_distance_to_point(point) >= 0 && left.
-            signed_distance_to_point(point) >= 0 && right.signed_distance_to_point(point) >= 0 && near.
-            signed_distance_to_point(point) >= 0 && far.signed_distance_to_point(point) >= 0;
+               signed_distance_to_point(point) >= 0 && right.signed_distance_to_point(point) >= 0 && near.
+               signed_distance_to_point(point) >= 0 && far.signed_distance_to_point(point) >= 0;
     }
 
-    bool Frustum::sphere_in_frustum(const Vec3d& center, const double radius) const
+    bool Frustum::intersects(const Vec3d center, const double radius) const
     {
         return top.signed_distance_to_point(center) >= -radius && bottom.signed_distance_to_point(center) >= -radius &&
-            left.signed_distance_to_point(center) >= -radius && right.signed_distance_to_point(center) >= -radius &&
-            near.signed_distance_to_point(center) >= -radius && far.signed_distance_to_point(center) >= -radius;
+               left.signed_distance_to_point(center) >= -radius && right.signed_distance_to_point(center) >= -radius &&
+               near.signed_distance_to_point(center) >= -radius && far.signed_distance_to_point(center) >= -radius;
     }
 }

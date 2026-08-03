@@ -2,7 +2,7 @@
 
 #include "gfx/core/material/material.h"
 #include "gfx/core/material/vertex-shader.h"
-#include "gfx/core/types/transform.h"
+#include "transform.h"
 #include "gfx/core/types/triangle-mesh.h"
 #include "gfx/core/types/uuid.h"
 #include "gfx/math/box.h"
@@ -16,9 +16,9 @@ namespace gfx
 
         using RotationType = Transform<VectorType>::RotationType;
 
-        virtual ~Primitive() = default;
-
         Primitive();
+
+        virtual ~Primitive() = default;
 
         virtual const TriangleMesh<VectorType>& get_mesh() const = 0;
 
@@ -46,23 +46,23 @@ namespace gfx
         UUID get_id() const;
         Transform<VectorType> get_transform() const;
         int64_t get_transform_generation() const;
-        
-        
+
+
         /* 2D Specific helpers */
-        
+
         void set_position(double x, double y) requires std::same_as<VectorType, Vec2d>;
         void set_scale(double x, double y) requires std::same_as<VectorType, Vec2d>;
-        void set_rotation_degrees(double angle) requires std::same_as<VectorType, Vec2d>;
+        void set_rotation_degrees(double angle) requires std::same_as<RotationType, double>;
         void set_anchor(double x, double y) requires std::same_as<VectorType, Vec2d>;
-        
-        
+
+
         /* 3D Specific helpers */
-        
+
         void set_position(double x, double y, double z) requires std::same_as<VectorType, Vec3d>;
         void set_scale(double x, double y, double z) requires std::same_as<VectorType, Vec3d>;
-        void set_rotation(double x, double y, double z) requires std::same_as<VectorType, Vec3d>;
-        void set_rotation_degrees(Vec3d rot) requires std::same_as<VectorType, Vec3d>;
-        void set_rotation_degrees(double x, double y, double z) requires std::same_as<VectorType, Vec3d>;
+        void set_rotation(double x, double y, double z) requires std::same_as<RotationType, Vec3d>;
+        void set_rotation_degrees(Vec3d rot) requires std::same_as<RotationType, Vec3d>;
+        void set_rotation_degrees(double x, double y, double z) requires std::same_as<RotationType, Vec3d>;
         void set_anchor(double x, double y, double z) requires std::same_as<VectorType, Vec3d>;
 
     protected:
@@ -248,6 +248,89 @@ namespace gfx
     }
 
     template <typename VectorType>
+    void Primitive<VectorType>::set_position(const double x, const double y) requires std::same_as<VectorType, Vec2d>
+    {
+        _position = Vec2d { x, y };
+        transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_scale(const double x, const double y) requires std::same_as<VectorType, Vec2d>
+    {
+        _scale = Vec2d { x, y };
+        transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_rotation_degrees(const double angle) requires std::same_as<RotationType, double>
+    {
+        _rotation = angle * std::numbers::pi / 180;
+        transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_anchor(const double x, const double y) requires std::same_as<VectorType, Vec2d>
+    {
+        _anchor = Vec2d { x, y };
+        transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_position(const double x, const double y, const double z) requires std::same_as<
+        VectorType, Vec3d>
+    {
+        _position = Vec3d { x, y, z };
+        transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_scale(const double x, const double y, const double z) requires std::same_as<
+        VectorType, Vec3d>
+    {
+        _scale = Vec3d { x, y, z };
+        transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_rotation(const double x, const double y, const double z) requires std::same_as<
+        RotationType, Vec3d>
+    {
+        _rotation = Vec3d { x, y, z };
+        transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_rotation_degrees(const Vec3d rot) requires std::same_as<RotationType, Vec3d>
+    {
+        _rotation = Vec3d {
+            rot.x * std::numbers::pi / 180,
+            rot.y * std::numbers::pi / 180,
+            rot.z * std::numbers::pi / 180
+        };
+        transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_rotation_degrees(const double x, const double y, const double z) requires
+        std::same_as<RotationType, Vec3d>
+    {
+        _rotation = Vec3d {
+            x * std::numbers::pi / 180,
+            y * std::numbers::pi / 180,
+            z * std::numbers::pi / 180
+        };
+        transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_anchor(const double x, const double y, const double z) requires std::same_as<
+        VectorType, Vec3d>
+    {
+        _anchor = Vec3d { x, y, z };
+        transform_updated();
+    }
+
+    template <typename VectorType>
     void Primitive<VectorType>::set_mesh_dirty(const bool dirty) const
     {
         _mesh_dirty = dirty;
@@ -276,89 +359,11 @@ namespace gfx
     {
         _transform_generation++;
     }
-    
+
     template <typename VectorType>
     void Primitive<VectorType>::transform_updated()
     {
         set_transform_dirty(true);
         increment_transform_generation();
-    }
-    
-    template <typename VectorType>
-    void Primitive<VectorType>::set_position(const double x, const double y) requires std::same_as<VectorType, Vec2d>
-    {
-        _position = Vec2d { x, y };
-        transform_updated();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_scale(const double x, const double y) requires std::same_as<VectorType, Vec2d>
-    {
-        _scale = Vec2d { x, y };
-        transform_updated();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_rotation_degrees(const double angle) requires std::same_as<VectorType, Vec2d>
-    {
-        _rotation = angle * std::numbers::pi / 180;
-        transform_updated();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_anchor(const double x, const double y) requires std::same_as<VectorType, Vec2d>
-    {
-        _anchor = Vec2d { x, y };
-        transform_updated();
-    }
-    
-    template <typename VectorType>
-    void Primitive<VectorType>::set_position(const double x, const double y, const double z) requires std::same_as<VectorType, Vec3d>
-    {
-        _position = Vec3d { x, y, z };
-        transform_updated();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_scale(const double x, const double y, const double z) requires std::same_as<VectorType, Vec3d>
-    {
-        _scale = Vec3d { x, y, z };
-        transform_updated();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_rotation(const double x, const double y, const double z) requires std::same_as<VectorType, Vec3d>
-    {
-        _rotation = Vec3d { x, y, z };
-        transform_updated();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_rotation_degrees(const Vec3d rot) requires std::same_as<VectorType, Vec3d>
-    {
-        _rotation = Vec3d {
-            rot.x * std::numbers::pi / 180,
-            rot.y * std::numbers::pi / 180,
-            rot.z * std::numbers::pi / 180
-        };
-        transform_updated();
-    }
-
-    template <typename VectorType>
-    void Primitive<VectorType>::set_rotation_degrees(const double x, const double y, const double z) requires std::same_as<VectorType, Vec3d>
-    {
-        _rotation = Vec3d {
-            x * std::numbers::pi / 180, 
-            y * std::numbers::pi / 180, 
-            z * std::numbers::pi / 180
-        };
-        transform_updated();
-    }
-    
-    template <typename VectorType>
-    void Primitive<VectorType>::set_anchor(const double x, const double y, const double z) requires std::same_as<VectorType, Vec3d>
-    {
-        _anchor = Vec3d { x, y, z };
-        transform_updated();
     }
 }

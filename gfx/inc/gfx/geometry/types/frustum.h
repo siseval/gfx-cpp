@@ -11,13 +11,14 @@ namespace gfx
             Vec3d normal;
             double d;
 
-            Plane();
+            Plane() = default;
             Plane(Vec3d normal, double d);
 
             double signed_distance_to_point(const Vec3d& point) const;
         };
 
-        Frustum();
+        Frustum() = default;
+        
         Frustum(
             const Plane& top,
             const Plane& bottom,
@@ -34,7 +35,7 @@ namespace gfx
         Plane near;
         Plane far;
 
-        bool point_in_frustum(const Vec3d& point) const;
-        bool sphere_in_frustum(const Vec3d& center, double radius) const;
+        bool contains(Vec3d point) const;
+        bool intersects(Vec3d center, double radius) const;
     };
 }

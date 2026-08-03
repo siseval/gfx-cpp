@@ -23,11 +23,6 @@ namespace gfx
             , y(y)
             , z(z) {}
 
-        Vec3(const Vec3& other)
-            : x(other.x)
-            , y(other.y)
-            , z(other.z) {}
-
         explicit Vec3(T v)
             : x(v)
             , y(v)

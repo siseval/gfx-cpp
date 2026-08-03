@@ -1,9 +1,10 @@
 #pragma once
+
 #include <type_traits>
 
 #include "gfx/core/types/bounding-ball.h"
 #include "gfx/geometry/types/frustum.h"
-#include "gfx/math/oriented-box.h"
+#include "gfx/geometry/types/oriented-box.h"
 #include "gfx/math/vec2.h"
 
 namespace gfx
@@ -15,8 +16,11 @@ namespace gfx
 
     public:
 
+        ViewBounds() = default;
+        explicit ViewBounds(const BoundsType& bounds);
+
         bool point_in_view(VectorType point) const;
-        bool ball_in_view(BoundingBall<VectorType> ball) const;
+        bool ball_in_view(const BoundingBall<VectorType>& ball) const;
 
     private:
 
@@ -24,28 +28,18 @@ namespace gfx
     };
 
     template <typename VectorType>
+    ViewBounds<VectorType>::ViewBounds(const BoundsType& bounds)
+        : bounds(bounds) {}
+
+    template <typename VectorType>
     bool ViewBounds<VectorType>::point_in_view(const VectorType point) const
     {
-        if constexpr (std::is_same_v<VectorType, Vec2d>)
-        {
-            return true;
-        }
-        else
-        {
-            return bounds.point_in_frustum(point);
-        }
+        return bounds.contains(point);
     }
 
     template <typename VectorType>
-    bool ViewBounds<VectorType>::ball_in_view(const BoundingBall<VectorType> ball) const
+    bool ViewBounds<VectorType>::ball_in_view(const BoundingBall<VectorType>& ball) const
     {
-        if constexpr (std::is_same_v<VectorType, Vec2d>)
-        {
-            return true;
-        }
-        else
-        {
-            return bounds.sphere_in_frustum(ball);
-        }
+        return bounds.intersects(ball);
     }
 }

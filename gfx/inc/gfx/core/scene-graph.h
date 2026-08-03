@@ -5,7 +5,7 @@
 #include "gfx/core/primitive.h"
 #include "../geometry/types/frustum.h"
 #include "gfx/core/types/uuid.h"
-#include "gfx/core/types/view-bounds.h"
+#include "view/view-bounds.h"
 
 namespace gfx
 {
