@@ -5,6 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_library(gfx)
 
+
 # === HEADERS ===
 
 # --- CORE ---
@@ -48,7 +49,7 @@ target_sources(gfx PRIVATE
 )
 
 # --- GEOMETRY/TYPES ---
-target_include_directories(gfx PRIVATE
+target_sources(gfx PRIVATE
         inc/gfx/geometry/types/frustum.h
         inc/gfx/geometry/types/oriented-box.h
         inc/gfx/geometry/types/polygon.h
@@ -86,6 +87,7 @@ target_sources(gfx PRIVATE
         inc/gfx/shaders/default-vertex-shader.h
         inc/gfx/shaders/diffuse-fragment-shader.h
 )
+
 
 # === SOURCE ===
 
