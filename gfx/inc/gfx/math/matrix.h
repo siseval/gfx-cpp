@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <stdexcept>
 
 namespace gfx
 {
@@ -26,7 +27,7 @@ namespace gfx
             }
         }
 
-        static Matrix identity()
+        static constexpr Matrix identity()
         {
             Matrix result;
             for (int r = 0; r < ROWS; ++r)
@@ -39,7 +40,7 @@ namespace gfx
             return result;
         }
 
-        static Matrix zero()
+        static constexpr Matrix zero()
         {
             Matrix result;
             for (int r = 0; r < ROWS; ++r)
@@ -113,6 +114,75 @@ namespace gfx
             }
             return result;
         }
+        
+       Matrix inverse() const
+        {
+            static_assert(ROWS == COLS, "matrix not invertible");
+
+            Matrix result { identity() };
+            Matrix temp { *this };
+
+            for (int i = 0; i < ROWS; ++i)
+            {
+                int pivot_row { i };
+                T max_val { std::abs(temp(i, i)) };
+                
+                for (int r = i + 1; r < ROWS; ++r)
+                {
+                    if (std::abs(temp(r, i)) > max_val)
+                    {
+                        max_val = std::abs(temp(r, i));
+                        pivot_row = r;
+                    }
+                }
+
+                if constexpr (std::is_floating_point_v<T>)
+                {
+                    if (std::abs(temp(pivot_row, i)) < T(1e-6))
+                    {
+                        throw std::runtime_error("matrix not invertible");
+                    }
+                }
+                else 
+                {
+                    if (temp(pivot_row, i) == T(0))
+                    {
+                        throw std::runtime_error("matrix not invertible");
+                    }
+                }
+
+                if (pivot_row != i)
+                {
+                    for (int c = 0; c < COLS; ++c)
+                    {
+                        std::swap(temp(i, c), temp(pivot_row, c));
+                        std::swap(result(i, c), result(pivot_row, c));
+                    }
+                }
+
+                T pivot_val = temp(i, i);
+                for (int c = 0; c < COLS; ++c)
+                {
+                    temp(i, c) /= pivot_val;
+                    result(i, c) /= pivot_val;
+                }
+
+                for (int r = 0; r < ROWS; ++r)
+                {
+                    if (r != i)
+                    {
+                        T factor = temp(r, i);
+                        for (int c = 0; c < COLS; ++c)
+                        {
+                            temp(r, c) -= factor * temp(i, c);
+                            result(r, c) -= factor * result(i, c);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        } 
 
         Matrix<T, COLS, ROWS> transpose() const
         {
@@ -177,6 +247,9 @@ namespace gfx
         T _data[ROWS][COLS];
     };
 
+    using Matrix2x2d = Matrix<double, 3, 3>;
+    using Matrix2x1d = Matrix<double, 3, 3>;
+    
     using Matrix3x3d = Matrix<double, 3, 3>;
     using Matrix3x1d = Matrix<double, 3, 1>;
     using Matrix4x4d = Matrix<double, 4, 4>;

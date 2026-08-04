@@ -1,5 +1,5 @@
 set(GFX_DEBUG_SOURCES
-        debug-viewer.cpp
+        ../../2D-bak/debug-viewer.cpp
 )
 
 add_library(gfx_debug STATIC ${GFX_DEBUG_SOURCES})

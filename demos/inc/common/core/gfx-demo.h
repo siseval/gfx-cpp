@@ -1,8 +1,10 @@
 #pragma once
 
+#include <memory>
 #include <string>
-#include "gfx/core/render-engine.h"
-#include "gfx/debug/debug-viewer.h"
+
+#include "gfx/core/render-layer.h"
+#include "gfx/math/vec2.h"
 
 namespace demos
 {
@@ -54,27 +56,27 @@ namespace demos
         Key key;
     };
 
+    template <typename VectorType>
     class GfxDemo
     {
     public:
 
-        GfxDemo(const std::shared_ptr<gfx::RenderEngine> renderer, const std::shared_ptr<gfx::DebugViewer> debug_viewer = nullptr)
-            : renderer(renderer),
-              debug_viewer(debug_viewer)
-        {
-        }
+        explicit GfxDemo(
+            const std::shared_ptr<gfx::RenderLayer<VectorType>>& renderer,
+            const std::shared_ptr<gfx::RenderSurface>& surface
+        )
+            : renderer(renderer)
+            , surface(surface) {}
+
+        virtual ~GfxDemo() {}
 
         virtual void init() = 0;
         virtual void render_frame(double dt) = 0;
         virtual void handle_char(int input) = 0;
 
-        virtual void report_mouse(const MouseEvent event)
-        {
-        }
+        virtual void report_mouse(const MouseEvent event) {}
 
-        virtual void report_key(const KeyEvent event)
-        {
-        }
+        virtual void report_key(const KeyEvent event) {}
 
         virtual void end() = 0;
 
@@ -83,14 +85,9 @@ namespace demos
             return {};
         }
 
-        std::shared_ptr<gfx::RenderEngine> get_renderer() const
-        {
-            return renderer;
-        }
-
         gfx::Vec2i get_resolution() const
         {
-            return renderer->get_resolution();
+            return renderer->get_viewport().size;
         }
 
         double get_fps() const
@@ -102,8 +99,8 @@ namespace demos
         {
             std::vector<std::string> info;
             info.push_back(
-                "resolution: " + std::to_string(renderer->get_resolution().round_to_int().x) + "x" + std::to_string(
-                    renderer->get_resolution().round_to_int().y
+                "resolution: " + std::to_string(renderer->get_viewport().size.round_to_int().x) + "x" + std::to_string(
+                    renderer->get_viewport().size.round_to_int().y
                 )
             );
             info.push_back("fps: " + std::to_string(static_cast<int>(get_fps())));
@@ -124,8 +121,8 @@ namespace demos
 
     protected:
 
-        std::shared_ptr<gfx::RenderEngine> renderer;
-        std::shared_ptr<gfx::DebugViewer> debug_viewer;
+        std::shared_ptr<gfx::RenderLayer<VectorType>> renderer;
+        std::shared_ptr<gfx::RenderSurface> surface;
         double last_frame_us = 0.0;
     };
 }

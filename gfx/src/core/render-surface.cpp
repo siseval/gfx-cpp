@@ -9,8 +9,10 @@ namespace gfx
         , _frame_buffer(std::vector(resolution.x * resolution.y, 0))
         , _depth_buffer(std::vector(resolution.x * resolution.y, std::numeric_limits<double>::infinity())) {}
 
-    void RenderSurface::write_pixel(const Vec2i pos, const Color4 color, const double depth, const BlendMode blend_mode)
+    void RenderSurface::write_pixel(const Vec2i viewport_offset, const Vec2i viewport_pixel, const Color4 color, const double depth, const BlendMode blend_mode)
     {
+        const Vec2i pos { viewport_offset + viewport_pixel };
+        
         if (pos.x < 0 || pos.y < 0 || pos.x >= _resolution.x || pos.y >= _resolution.y)
         {
             return;
@@ -49,8 +51,10 @@ namespace gfx
         }
     }
 
-    Color4 RenderSurface::read_pixel(const Vec2i pos) const
+    Color4 RenderSurface::read_pixel(const Vec2i viewport_offset, const Vec2i viewport_pixel) const
     {
+        const Vec2i pos { viewport_offset + viewport_pixel };
+        
         if (pos.x < 0 || pos.y < 0 || pos.x >= _resolution.x || pos.y >= _resolution.y)
         {
             return Color4 { 0, 0, 0, 0 };
@@ -60,8 +64,10 @@ namespace gfx
         return Color4::from_i32(std::byteswap(_frame_buffer.data()[index]));
     }
 
-    double RenderSurface::get_depth(const Vec2i pos) const
+    double RenderSurface::get_depth(const Vec2i viewport_offset, const Vec2i viewport_pixel) const
     {
+        const Vec2i pos { viewport_offset + viewport_pixel };
+        
         if (pos.x < 0 || pos.y < 0 || pos.x >= _resolution.x || pos.y >= _resolution.y)
         {
             return std::numeric_limits<double>::infinity();
@@ -73,16 +79,35 @@ namespace gfx
 
     void RenderSurface::clear_frame_buffer()
     {
-        for (size_t i = 0; i < _frame_buffer.size(); ++i)
+        std::ranges::fill(_frame_buffer, std::byteswap(_clear_color.to_i32()));
+        std::ranges::fill(_depth_buffer, std::numeric_limits<double>::infinity());
+    }
+    
+    void RenderSurface::clear_frame_buffer(const Viewport& viewport)
+    {
+        if (viewport.offset == Vec2i::zero() && viewport.size == _resolution)
         {
-            _frame_buffer.data()[i] = std::byteswap(_clear_color.to_i32());
-            _depth_buffer.at(i) = std::numeric_limits<double>::infinity();
+            clear_frame_buffer();
+        }
+        
+        const Vec2i bottom_right { viewport.offset + viewport.size };
+        
+        for (size_t i = viewport.offset.x; i < bottom_right.x; ++i)
+        {
+            for (size_t j = viewport.offset.y; j < bottom_right.y; ++j)
+            {
+                const size_t index { j * _resolution.x + i };
+                _frame_buffer.data()[index] = std::byteswap(_clear_color.to_i32());
+                _depth_buffer.at(index) = std::numeric_limits<double>::infinity();
+            }
         }
     }
 
     void RenderSurface::set_resolution(const Vec2i new_resolution)
     {
         _resolution = new_resolution;
+        _frame_buffer.resize(_resolution.x * _resolution.y, 0);
+        _depth_buffer.resize(_resolution.x * _resolution.y, std::numeric_limits<float>::infinity());
     }
 
     Vec2i RenderSurface::get_resolution() const

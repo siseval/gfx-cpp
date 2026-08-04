@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cmath>
-#include <cstdint>
 #include <functional>
 #include <numbers>
 
@@ -21,17 +20,34 @@ namespace gfx
             : x(x)
             , y(y) {}
 
-        Vec2(const Vec2& other)
-            : x(other.x)
-            , y(other.y) {}
-
         explicit Vec2(T v)
             : x(v)
             , y(v) {}
 
-        static Vec2 zero()
+        static constexpr Vec2 zero()
         {
             return { 0, 0 };
+        }
+        
+        static constexpr Vec2 one()
+        {
+            return { 1, 1 };
+        }
+
+        static constexpr Vec2 min()
+        {
+            return Vec2 {
+                std::numeric_limits<T>::min(),
+                std::numeric_limits<T>::min()
+            };
+        }
+        
+        static constexpr Vec2 max()
+        {
+            return Vec2 {
+                std::numeric_limits<T>::max(),
+                std::numeric_limits<T>::max()
+            };
         }
 
         static T cross(Vec2 a, Vec2 b)
@@ -157,6 +173,16 @@ namespace gfx
         Vec2<int> round_to_int() const
         {
             return { static_cast<int>(std::lround(x)), static_cast<int>(std::lround(y)) };
+        }
+        
+        T min_element() const
+        {
+            return std::min(x, y);
+        }
+        
+        T max_element() const
+        {
+            return std::max(x, y);
         }
 
         static Vec2<int> floor(const Vec2& v)

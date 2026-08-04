@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "gfx/core/types/color4.h"
 #include "gfx/math/vec2.h"
 

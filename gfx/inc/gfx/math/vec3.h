@@ -23,19 +23,37 @@ namespace gfx
             , y(y)
             , z(z) {}
 
-        Vec3(const Vec3& other)
-            : x(other.x)
-            , y(other.y)
-            , z(other.z) {}
-
         explicit Vec3(T v)
             : x(v)
             , y(v)
             , z(v) {}
 
-        static Vec3 zero()
+        static constexpr Vec3 zero()
         {
             return { 0, 0, 0 };
+        }
+        
+        static constexpr Vec3 one()
+        {
+            return { 1, 1, 1 };
+        }
+        
+        static constexpr Vec3 min()
+        {
+            return Vec3 {
+                std::numeric_limits<T>::lowest(),
+                std::numeric_limits<T>::lowest(),
+                std::numeric_limits<T>::lowest()
+            };
+        }
+        
+        static constexpr Vec3 max()
+        {
+            return Vec3 {
+                std::numeric_limits<T>::max(), 
+                std::numeric_limits<T>::max(), 
+                std::numeric_limits<T>::max()
+            };
         }
 
         static T dot(Vec3 a, Vec3 b)
@@ -113,6 +131,16 @@ namespace gfx
                 return Vec3<double> { -y, x, 0 }.normalize();
             }
             return Vec3<double> { 0, -z, y }.normalize();
+        }
+        
+        T min_element() const
+        {
+            return std::min(std::min(x, y), z);
+        }
+        
+        T max_element() const
+        {
+            return std::max(std::max(x, y), z);
         }
 
         double length() const
@@ -243,6 +271,7 @@ namespace gfx
     };
 
     using Vec3i = Vec3<int>;
+    using Vec3l = Vec3<long>;
     using Vec3d = Vec3<double>;
     using Vec3f = Vec3<float>;
 }

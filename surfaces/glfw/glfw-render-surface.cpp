@@ -83,44 +83,6 @@ int GLFWRenderSurface::init()
 void GLFWRenderSurface::present()
 {
     glBindTexture(GL_TEXTURE_2D, _texture);
-    glTexSubImage2D(
-        GL_TEXTURE_2D,
-        0,
-        0,
-        0,
-        _resolution.x,
-        _resolution.y,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        _frame_buffer.data()
-    );
-
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(_shader_program);
-    glBindVertexArray(_vao);
-    glBindTexture(GL_TEXTURE_2D, _texture);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    glfwSwapBuffers(_window);
-    glfwPollEvents();
-}
-
-void GLFWRenderSurface::clear_screen() const
-{
-    glClear(GL_COLOR_BUFFER_BIT);
-}
-
-void GLFWRenderSurface::resize(const Vec2i new_resolution)
-{
-    _resolution = new_resolution;
-    _frame_buffer.resize(_resolution.x * _resolution.y, 0);
-    _depth_buffer.resize(_resolution.x * _resolution.y, std::numeric_limits<float>::infinity());
-    if (_window)
-    {
-        glfwSetWindowSize(_window, new_resolution.x, new_resolution.y);
-    }
-    glBindTexture(GL_TEXTURE_2D, _texture);
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
@@ -132,7 +94,33 @@ void GLFWRenderSurface::resize(const Vec2i new_resolution)
         GL_UNSIGNED_BYTE,
         _frame_buffer.data()
     );
-    glViewport(0, 0, _resolution.x, _resolution.y);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(_shader_program);
+    glBindVertexArray(_vao);
+    glBindTexture(GL_TEXTURE_2D, _texture);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    
+    int width, height;
+    glfwGetFramebufferSize(_window, &width, &height);
+    glViewport(0, 0, width, height);
+
+    glfwSwapBuffers(_window);
+    glfwPollEvents();
+}
+
+void GLFWRenderSurface::clear_screen() const
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void GLFWRenderSurface::resize_window(const Vec2i new_resolution)
+{
+    if (_window)
+    {
+        glfwSetWindowSize(_window, new_resolution.x, new_resolution.y);
+    }
 }
 
 void GLFWRenderSurface::print_frame_buffer() const

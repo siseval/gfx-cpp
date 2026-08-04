@@ -1,21 +1,23 @@
 #pragma once
 
-#include "gfx/core/primitive-3D.h"
+#include "gfx/core/primitive.h"
 #include "gfx/math/vec2.h"
 
 namespace gfx
 {
-    class Plane3D final : public Primitive3D
+    class Plane3D final : public Primitive<Vec3d>
     {
     public:
 
         Plane3D() = default;
 
-        const TriangleMesh& get_mesh() const override;
-
         void set_size(Vec2d new_size);
         void set_size(double width, double height);
         Vec2d get_size() const;
+        
+    protected:
+        
+        void generate_mesh() const override;
 
     private:
 

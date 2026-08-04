@@ -19,7 +19,7 @@ public:
     void present() override;
     void clear_screen() const override;
 
-    void resize(Vec2i new_resolution) override;
+    void resize_window(Vec2i new_resolution) override;
 
     static constexpr int PALETTE_START_INDEX = 127;
     static constexpr int MAX_COLORS = 128;

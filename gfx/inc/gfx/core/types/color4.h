@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 
 namespace gfx
@@ -11,7 +12,7 @@ namespace gfx
         uint8_t b;
         uint8_t a;
 
-        Color4(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+        Color4(std::uint8_t r, uint8_t g, uint8_t b, uint8_t a);
         Color4(int r, int g, int b, int a);
 
         Color4(uint8_t r, uint8_t g, uint8_t b);
@@ -48,6 +49,7 @@ namespace gfx
         int32_t to_i32() const;
 
         static Color4 lerp(const Color4& a, const Color4& b, double t);
+        
         static Color4 bilinear_interp(
             const Color4& c00,
             const Color4& c10,
@@ -56,6 +58,7 @@ namespace gfx
             double sx,
             double sy
         );
+        
         static Color4 trilinear_interp(
             const Color4& c1,
             const Color4& c2,

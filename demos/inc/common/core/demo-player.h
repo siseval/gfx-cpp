@@ -2,21 +2,14 @@
 
 #include "common/core/gfx-demo.h"
 
-#include <gfx/core/render-engine.h>
-#include <gfx/debug/debug-viewer.h>
-
 namespace demos
 {
     class DemoPlayer
     {
     public:
 
-        DemoPlayer() :
-            renderer(std::shared_ptr<gfx::RenderEngine>()),
-            debug_viewer(std::make_shared<gfx::DebugViewer>())
-        {
-        }
-
+        virtual ~DemoPlayer() = default;
+        
         void init();
         void run();
 
@@ -24,7 +17,7 @@ namespace demos
 
         bool screen_size_changed()
         {
-            return get_screen_size() != renderer->get_resolution();
+            return _previous_screen_size != get_screen_size();
         }
 
     protected:
@@ -38,11 +31,13 @@ namespace demos
         virtual int get_input() = 0;
         virtual void draw_info() = 0;
 
-        std::shared_ptr<gfx::RenderEngine> renderer;
-        std::vector<std::shared_ptr<GfxDemo>> demos;
+        mutable gfx::Vec2i _previous_screen_size;
+        
+        std::shared_ptr<gfx::RenderLayer<gfx::Vec3d>> renderer;
+        std::shared_ptr<gfx::RenderSurface> surface;
+        
+        std::vector<std::shared_ptr<GfxDemo<gfx::Vec3d>>> demos;
         int current_demo = 0;
-
-        std::shared_ptr<gfx::DebugViewer> debug_viewer;
 
         bool show_info = true;
         bool show_debug = true;

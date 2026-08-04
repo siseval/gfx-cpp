@@ -1,11 +1,7 @@
 set(GFX_CORE_TYPES_SOURCES
         bitmap.cpp
         color4.cpp
-        obb-2D.cpp
-        obb-3D.cpp
         uuid.cpp
-        frustum.cpp
-        bounding-sphere.cpp
         barycentric-triangle.cpp
         triangle-mesh.cpp
 )
