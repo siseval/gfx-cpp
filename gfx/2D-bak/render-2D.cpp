@@ -1,4 +1,4 @@
-#include "gfx/core/render-2D.h"
+#include "render-2D.h"
 #include "gfx/geometry/transform-2D.h"
 
 namespace gfx

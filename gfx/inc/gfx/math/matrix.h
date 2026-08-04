@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <stdexcept>
 
 namespace gfx
 {
@@ -113,6 +114,75 @@ namespace gfx
             }
             return result;
         }
+        
+       Matrix inverse() const
+        {
+            static_assert(ROWS == COLS, "matrix not invertible");
+
+            Matrix result { identity() };
+            Matrix temp { *this };
+
+            for (int i = 0; i < ROWS; ++i)
+            {
+                int pivot_row { i };
+                T max_val { std::abs(temp(i, i)) };
+                
+                for (int r = i + 1; r < ROWS; ++r)
+                {
+                    if (std::abs(temp(r, i)) > max_val)
+                    {
+                        max_val = std::abs(temp(r, i));
+                        pivot_row = r;
+                    }
+                }
+
+                if constexpr (std::is_floating_point_v<T>)
+                {
+                    if (std::abs(temp(pivot_row, i)) < T(1e-6))
+                    {
+                        throw std::runtime_error("matrix not invertible");
+                    }
+                }
+                else 
+                {
+                    if (temp(pivot_row, i) == T(0))
+                    {
+                        throw std::runtime_error("matrix not invertible");
+                    }
+                }
+
+                if (pivot_row != i)
+                {
+                    for (int c = 0; c < COLS; ++c)
+                    {
+                        std::swap(temp(i, c), temp(pivot_row, c));
+                        std::swap(result(i, c), result(pivot_row, c));
+                    }
+                }
+
+                T pivot_val = temp(i, i);
+                for (int c = 0; c < COLS; ++c)
+                {
+                    temp(i, c) /= pivot_val;
+                    result(i, c) /= pivot_val;
+                }
+
+                for (int r = 0; r < ROWS; ++r)
+                {
+                    if (r != i)
+                    {
+                        T factor = temp(r, i);
+                        for (int c = 0; c < COLS; ++c)
+                        {
+                            temp(r, c) -= factor * temp(i, c);
+                            result(r, c) -= factor * result(i, c);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        } 
 
         Matrix<T, COLS, ROWS> transpose() const
         {

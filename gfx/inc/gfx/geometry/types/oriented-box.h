@@ -19,8 +19,8 @@ namespace gfx
         OrientedBox(Vec2d origin, Vec2d side_x, Vec2d side_y) requires (D == 2);
         OrientedBox(Vec3d origin, Vec3d side_x, Vec3d side_y, Vec3d side_z) requires (D == 3);
 
-        bool contains(const VectorType& point) const;
-        bool intersects(const BoundingBall<VectorType>& ball) const;
+        bool contains(VectorType point) const;
+        bool intersects(VectorType center, double radius) const;
 
         VectorType get_center() const;
         VectorType get_extent() const;
@@ -47,7 +47,7 @@ namespace gfx
         , sides({ side_x, side_y, side_z }) {}
 
     template <typename VectorType>
-    bool OrientedBox<VectorType>::contains(const VectorType& point) const
+    bool OrientedBox<VectorType>::contains(const VectorType point) const
     {
         const VectorType d { point - origin };
 
@@ -65,9 +65,9 @@ namespace gfx
     }
 
     template <typename VectorType>
-    bool OrientedBox<VectorType>::intersects(const BoundingBall<VectorType>& ball) const
+    bool OrientedBox<VectorType>::intersects(const VectorType center, const double radius) const
     {
-        const VectorType d { ball.center - origin };
+        const VectorType d { center - origin };
         VectorType closest_point { origin };
 
         for (size_t i = 0; i < D; ++i)
@@ -79,10 +79,10 @@ namespace gfx
             closest_point = closest_point + sides[i] * projection;
         }
 
-        const VectorType diff { ball.center - closest_point };
+        const VectorType diff { center - closest_point };
 
         const double squared_distance { VectorType::dot(diff, diff) };
-        const double squared_radius { ball.radius * ball.radius };
+        const double squared_radius { radius * radius };
 
         return squared_distance <= squared_radius;
     }

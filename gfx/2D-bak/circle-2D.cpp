@@ -1,4 +1,4 @@
-#include "gfx/primitives/circle-2D.h"
+#include "circle-2D.h"
 
 #include "gfx/geometry/transform-2D.h"
 

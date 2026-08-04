@@ -20,7 +20,7 @@ namespace gfx
 
         virtual ~Primitive() = default;
 
-        virtual const TriangleMesh<VectorType>& get_mesh() const = 0;
+        const TriangleMesh<VectorType>& get_mesh() const;
 
         void set_position(VectorType pos);
         void set_scale(VectorType s);
@@ -34,6 +34,7 @@ namespace gfx
         VectorType get_position() const;
         VectorType get_scale() const;
         RotationType get_rotation() const;
+        RotationType get_rotation_degrees() const;
         Color4 get_color() const;
         VectorType get_anchor() const;
         std::shared_ptr<Material> get_material(size_t slot = 0) const;
@@ -67,6 +68,8 @@ namespace gfx
 
     protected:
 
+        virtual void generate_mesh() const = 0;
+        
         void set_mesh_dirty(bool dirty) const;
         void set_transform_dirty(bool dirty) const;
 
@@ -100,6 +103,17 @@ namespace gfx
     template <typename VectorType>
     Primitive<VectorType>::Primitive()
         : _id(UUID::generate()) {}
+    
+    template <typename VectorType>
+    const TriangleMesh<VectorType>& Primitive<VectorType>::get_mesh() const
+    {
+        if (_mesh_dirty)
+        {
+            generate_mesh();
+        }
+        
+        return _mesh_data;
+    }
 
     template <typename VectorType>
     void Primitive<VectorType>::set_position(const VectorType pos)
@@ -171,6 +185,12 @@ namespace gfx
     {
         return _rotation;
     }
+    
+    template <typename VectorType>
+    Primitive<VectorType>::RotationType Primitive<VectorType>::get_rotation_degrees() const
+    {
+        return _rotation * (180 / std::numbers::pi);
+    }
 
     template <typename VectorType>
     Color4 Primitive<VectorType>::get_color() const
@@ -209,12 +229,22 @@ namespace gfx
     template <typename VectorType>
     Box<VectorType> Primitive<VectorType>::get_aabb() const
     {
+        if (_mesh_dirty)
+        {
+            generate_mesh();
+        } 
+        
         return _mesh_data.get_aabb();
     }
 
     template <typename VectorType>
     BoundingBall<VectorType> Primitive<VectorType>::get_bounding_sphere() const
     {
+        if (_mesh_dirty)
+        {
+            generate_mesh();
+        }
+        
         return _mesh_data.get_bounding_sphere();
     }
 

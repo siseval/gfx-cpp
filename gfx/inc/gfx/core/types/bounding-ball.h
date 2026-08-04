@@ -10,7 +10,7 @@ namespace gfx
 
         BoundingBall transformed(const VectorType& translation, const VectorType& scale) const;
 
-        VectorType center { VectorType::zero };
+        VectorType center { VectorType::zero() };
         double radius { 0.0 };
     };
 

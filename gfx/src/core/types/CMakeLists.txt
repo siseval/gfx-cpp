@@ -1,7 +1,6 @@
 set(GFX_CORE_TYPES_SOURCES
         bitmap.cpp
         color4.cpp
-        obb-2D.cpp
         uuid.cpp
         barycentric-triangle.cpp
         triangle-mesh.cpp

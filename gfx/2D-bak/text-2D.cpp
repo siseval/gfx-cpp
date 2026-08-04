@@ -1,12 +1,12 @@
-#include "gfx/primitives/text-2D.h"
+#include "text-2D.h"
 
 #include <utility>
 
-#include "gfx/geometry/rasterize.h"
+#include "rasterize.h"
 #include "gfx/geometry/transform-2D.h"
-#include "gfx/geometry/triangulate.h"
+#include "triangulate.h"
 #include "gfx/geometry/types/polygon.h"
-#include "gfx/text/utf-8.h"
+#include "utf-8.h"
 
 
 namespace gfx

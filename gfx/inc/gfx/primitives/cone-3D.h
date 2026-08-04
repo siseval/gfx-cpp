@@ -1,17 +1,16 @@
 #pragma once
 
-#include "gfx/core/primitive-3D.h"
+#include "gfx/core/primitive.h"
+#include "gfx/math/vec3.h"
 
 namespace gfx
 {
-    class Cone3D final : public Primitive3D
+    class Cone3D final : public Primitive<Vec3d>
     {
     public:
 
         Cone3D() = default;
-
-        const TriangleMesh& get_mesh() const override;
-
+        
         void set_radius(double new_radius);
         void set_height(double new_height);
         void set_segments(int new_segments);
@@ -20,6 +19,10 @@ namespace gfx
         double get_height() const;
         int get_segments() const;
 
+    protected:
+        
+        void generate_mesh() const override;
+        
     private:
 
         double _radius;

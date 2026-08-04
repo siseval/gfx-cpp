@@ -40,6 +40,6 @@ namespace gfx
     template <typename VectorType>
     bool ViewBounds<VectorType>::ball_in_view(const BoundingBall<VectorType>& ball) const
     {
-        return bounds.intersects(ball);
+        return bounds.intersects(ball.center, ball.radius);
     }
 }

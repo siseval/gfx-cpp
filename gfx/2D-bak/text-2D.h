@@ -4,7 +4,7 @@
 #include "gfx/math/box2.h"
 #include "gfx/math/matrix.h"
 #include "gfx/math/vec2.h"
-#include "gfx/text/font-ttf.h"
+#include "font-ttf.h"
 
 namespace gfx
 {

@@ -135,12 +135,12 @@ namespace gfx
         
         T min_element() const
         {
-            return std::min(x, y, z);
+            return std::min(std::min(x, y), z);
         }
         
         T max_element() const
         {
-            return std::max(x, y, z);
+            return std::max(std::max(x, y), z);
         }
 
         double length() const

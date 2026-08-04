@@ -2,7 +2,6 @@
 
 // #include <iostream>
 #include <glfw-render-surface.h>
-#include <gfx/core/render-engine.h>
 
 #include "common/core/demo-player.h"
 
@@ -16,24 +15,28 @@ namespace demos
         {
             const gfx::Vec2i resolution = { 1280, 720 };
 
-            auto surface = std::make_shared<gfx::GLFWRenderSurface>(resolution);
-            renderer = std::make_shared<gfx::RenderEngine>(surface);
+            renderer = std::make_shared<gfx::RenderLayer<gfx::Vec3d>>(gfx::Viewport(resolution));
+            surface = std::make_shared<gfx::GLFWRenderSurface>(resolution);
 
-            glfwSetWindowUserPointer(surface->get_window(), this);
+            GLFWwindow* window = get_window();
 
-            glfwSetInputMode(surface->get_window(), GLFW_STICKY_KEYS, GLFW_TRUE);
-            glfwSetInputMode(surface->get_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            glfwSetWindowUserPointer(window, this);
 
-            glfwSetMouseButtonCallback(surface->get_window(), mouse_callback);
-            glfwSetKeyCallback(surface->get_window(), key_callback);
-            glfwSetScrollCallback(surface->get_window(), scroll_callback);
-            glfwSetCursorPosCallback(surface->get_window(), cursor_callback);
-            glfwSetCharCallback(surface->get_window(), char_callback);
+            glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+            glfwSetMouseButtonCallback(window, mouse_callback);
+            glfwSetKeyCallback(window, key_callback);
+            glfwSetScrollCallback(window, scroll_callback);
+            glfwSetCursorPosCallback(window, cursor_callback);
+            glfwSetCharCallback(window, char_callback);
         }
 
+    protected:
+        
         gfx::Vec2i get_screen_size() override
         {
-            return renderer->get_resolution();
+            return surface->get_resolution();
             // int w, h;
             // glfwGetFramebufferSize(get_window(), &w, &h);
             // return { w, h };
@@ -56,7 +59,7 @@ namespace demos
             //     fps = " " + fps;
             // }
             // int x, y;
-            // glfwGetWindowSize(surface->get_window(), &x, &y);
+            // glfwGetWindowSize(window, &x, &y);
             // surface->set_window_title(
             //     "Demo [" + std::to_string(current_demo + 1) + "/" + std::to_string(demos.size()) + "]" +
             //     " :: " + std::to_string(resolution.x) + "x" + std::to_string(resolution.y) +
@@ -75,7 +78,7 @@ namespace demos
         }
 
     private:
-
+        
         static void mouse_callback(GLFWwindow* win, const int button, const int action, int mods)
         {
             const auto* self = static_cast<GLFWDemoPlayer*>(glfwGetWindowUserPointer(win));
@@ -120,7 +123,7 @@ namespace demos
 
             double x, y;
             glfwGetCursorPos(win, &x, &y);
-            event.position = static_cast<gfx::Vec2<double>>(gfx::Vec2i { static_cast<int>(x), static_cast<int>(y) } / self->renderer->get_render_2D()->get_viewport_scaling());
+            event.position = static_cast<gfx::Vec2<double>>(gfx::Vec2i { static_cast<int>(x), static_cast<int>(y) });
 
             self->demos[self->current_demo]->report_mouse(event);
         }
@@ -226,7 +229,7 @@ namespace demos
 
         GLFWwindow* get_window() const
         {
-            return std::static_pointer_cast<gfx::GLFWRenderSurface>(renderer->get_render_surface())->get_window();
+            return std::static_pointer_cast<gfx::GLFWRenderSurface>(surface)->get_window();
         }
 
         static gfx::Vec2d get_scaling(GLFWwindow* win)

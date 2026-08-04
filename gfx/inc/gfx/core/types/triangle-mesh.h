@@ -26,14 +26,14 @@ namespace gfx
         Box<VectorType> get_aabb() const;
         BoundingBall<VectorType> get_bounding_sphere() const;
 
-        void set_vertices(const std::vector<VectorType>& verts);
-        void set_normals(const std::vector<VectorType>& norms);
+        void set_vertices(const std::vector<VectorType>& vertices);
+        void set_normals(const std::vector<Vec3d>& normals);
         void set_uvs(const std::vector<Vec2d>& uvs);
-        void set_colors(const std::vector<Color4>& cols);
-        void set_faces(const std::vector<Face>& fcs);
+        void set_colors(const std::vector<Color4>& colors);
+        void set_faces(const std::vector<Face>& faces);
 
         const std::vector<VectorType>& get_vertices() const;
-        const std::vector<VectorType>& get_normals() const;
+        const std::vector<Vec3d>& get_normals() const;
         const std::vector<Vec2d>& get_uvs() const;
         const std::vector<Color4>& get_colors() const;
         const std::vector<Face>& get_faces() const;
@@ -45,7 +45,7 @@ namespace gfx
     private:
 
         std::vector<VectorType> _vertices;
-        std::vector<VectorType> _normals;
+        std::vector<Vec3d> _normals;
         std::vector<Vec2d> _uv_coords;
         std::vector<Color4> _colors;
         std::vector<Face> _faces;
@@ -116,17 +116,17 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void TriangleMesh<VectorType>::set_vertices(const std::vector<VectorType>& verts)
+    void TriangleMesh<VectorType>::set_vertices(const std::vector<VectorType>& vertices)
     {
-        _vertices = verts;
+        _vertices = vertices;
         _aabb_dirty = true;
         _bounding_sphere_dirty = true;
     }
 
     template <typename VectorType>
-    void TriangleMesh<VectorType>::set_normals(const std::vector<VectorType>& norms)
+    void TriangleMesh<VectorType>::set_normals(const std::vector<Vec3d>& normals)
     {
-        _normals = norms;
+        _normals = normals;
     }
 
     template <typename VectorType>
@@ -136,15 +136,15 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void TriangleMesh<VectorType>::set_colors(const std::vector<Color4>& cols)
+    void TriangleMesh<VectorType>::set_colors(const std::vector<Color4>& colors)
     {
-        _colors = cols;
+        _colors = colors;
     }
 
     template <typename VectorType>
-    void TriangleMesh<VectorType>::set_faces(const std::vector<Face>& fcs)
+    void TriangleMesh<VectorType>::set_faces(const std::vector<Face>& faces)
     {
-        _faces = fcs;
+        _faces = faces;
     }
 
     template <typename VectorType>
@@ -154,7 +154,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    const std::vector<VectorType>& TriangleMesh<VectorType>::get_normals() const
+    const std::vector<Vec3d>& TriangleMesh<VectorType>::get_normals() const
     {
         return _normals;
     }

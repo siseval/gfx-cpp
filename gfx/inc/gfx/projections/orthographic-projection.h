@@ -5,7 +5,7 @@
 
 namespace gfx
 {
-    class OrthographicProjection : Projection<Vec2d>
+    class OrthographicProjection : public Projection<Vec2d>
     {
     public:
 

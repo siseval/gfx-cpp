@@ -5,7 +5,7 @@
 
 namespace gfx
 {
-    class ViewportProjection : Projection<Vec2d>
+    class ViewportProjection : public Projection<Vec2d>
     {
     public:
 

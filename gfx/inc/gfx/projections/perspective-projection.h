@@ -5,7 +5,7 @@
 
 namespace gfx
 {
-    class PerspectiveProjection : Projection<Vec3d>
+    class PerspectiveProjection : public Projection<Vec3d>
     {
     public:
 
@@ -28,8 +28,8 @@ namespace gfx
 
     private:
 
-        double _z_near;
-        double _z_far;
-        double _fov;
+        double _z_near { 0.1 };
+        double _z_far { 1000.0 };
+        double _fov { 70.0 };
     };
 }

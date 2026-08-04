@@ -14,9 +14,9 @@ namespace gfx
             const double intensity = uniforms.ambient_intensity + (1.0 - uniforms.ambient_intensity) * diffuse;
 
             return Color4(
-                intensity * input.color.r_double(),
-                intensity * input.color.g_double(),
-                intensity * input.color.b_double(),
+                std::clamp(intensity * input.color.r_double(), 0.0, 1.0),
+                std::clamp(intensity * input.color.g_double(), 0.0, 1.0),
+                std::clamp(intensity * input.color.b_double(), 0.0, 1.0),
                 1.0
             );
         }

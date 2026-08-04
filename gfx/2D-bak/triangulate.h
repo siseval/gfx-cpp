@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "gfx/math/vec2.h"
-#include "types/polygon.h"
-#include "types/triangle.h"
+#include "../inc/gfx/geometry/types/polygon.h"
+#include "../inc/gfx/geometry/types/triangle.h"
 
 namespace gfx
 {

@@ -14,20 +14,21 @@ namespace gfx
         struct Uniforms
         {
             double t;
+            MatrixType model_matrix;
             MatrixType mvp_matrix;
         };
 
         struct Input
         {
             VectorType pos;
-            VectorType normal;
+            Vec3d normal;
         };
 
         struct Output
         {
             VectorType pos;
             double w;
-            VectorType normal;
+            Vec3d normal;
         };
 
         virtual ~VertexShader() = default;

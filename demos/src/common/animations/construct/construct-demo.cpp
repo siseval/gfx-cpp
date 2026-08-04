@@ -69,7 +69,7 @@ namespace demos
         return key;
     }
 
-    TriangleMesh load_obj(const std::string& path, std::unordered_map<std::string, size_t>& material_map)
+    TriangleMesh<Vec3d> load_obj(const std::string& path, std::unordered_map<std::string, size_t>& material_map)
     {
         std::ifstream file(path);
         if (!file)
@@ -82,7 +82,7 @@ namespace demos
         std::vector<Vec3d> vertices;
         std::vector<Vec3d> normals;
         std::vector<Vec2d> uvs;
-        std::vector<TriangleMesh::Face> faces;
+        std::vector<TriangleMesh<Vec3d>::Face> faces;
 
         size_t current_material = 0;
         size_t next_material_id = 0;
@@ -192,7 +192,7 @@ namespace demos
             }
         }
 
-        TriangleMesh mesh;
+        TriangleMesh<Vec3d> mesh;
         mesh.set_vertices(vertices);
         if (!normals.empty())
             mesh.set_normals(normals);
@@ -418,48 +418,17 @@ namespace demos
         }
     }
 
-    class WaterVertexShader : public VertexShader
-    {
-        Output vert(const Input& input, const Uniforms& uniforms) const override
-        {
-            const Matrix4x1d pos_h {
-                { input.pos.x },
-                { input.pos.y },
-                { input.pos.z },
-                { 1.0 }
-            };
-
-            const Matrix4x1d normal_h {
-                { input.normal.x },
-                { input.normal.y },
-                { input.normal.z },
-                { 0.0 }
-            };
-
-            const Matrix4x1d normal_clip = uniforms.model_matrix * normal_h;
-            const Matrix4x1d pos_clip = uniforms.mvp_matrix * pos_h + normal_clip * std::sin(uniforms.t * 2.0 + input.pos.x * 0.5 + input.pos.z * 0.5) * 0.1;
-
-            return Output {
-                .xyz    = { pos_clip(0, 0), pos_clip(1, 0), pos_clip(2, 0) },
-                .w      = pos_clip(3, 0),
-                .normal = { normal_clip(0, 0), normal_clip(1, 0), normal_clip(2, 0) }
-            };
-        }
-    };
-
     void ConstructDemo::init()
     {
-        renderer->clear_2D_scene();
-        renderer->clear_3D_scene();
-        renderer->set_clear_color(Color4(0.7, 0.7, 0.9, 1.0));
-        renderer->set_ambient_light(0.5);
-        renderer->set_light_direction(-1.0, 1.0, -1.0);
-        renderer->get_render_3D()->set_texture_filtering_mode(Texture::FilteringMode::BILINEAR);
+        auto scene_graph { renderer->get_scene_graph() };
+        
+        surface->set_clear_color(Color4(0.7, 0.7, 0.9, 1.0));
+        
+        renderer->settings.texture_filtering_mode = Texture::FilteringMode::BILINEAR;
 
-        auto& camera = renderer->get_camera();
-        camera.set_position(20.0, -85.0, -15.0);
-        camera.set_rotation_degrees(0.0, -90.0, 0.0);
-        camera.set_fov_degrees(104.0);
+        view.set_position(20.0, -85.0, -15.0);
+        view.set_rotation_degrees(0.0, -90.0, 0.0);
+        projection.set_fov_degrees(90.0);
 
         const Vec2i texture_res { 128, 128 };
 
@@ -473,9 +442,10 @@ namespace demos
         const Vec2i res1964 { 3024, 1964 };
         const Vec2i res2160 { 3840, 2160 };
 
-        renderer->set_resolution(res360);
+        renderer->get_viewport().size = res360;
+        surface->set_resolution(res1080);
 
-        const std::string assets_dir { "/home/sisev/Projects/code/cpp/sigfx/assets/models/ImageToStl/" };
+        const std::string assets_dir { "/home/sisev/projects/code/cpp/sigfx/assets/models/ImageToStl/" };
 
         const auto diffuse_shader { std::make_shared<DiffuseFragmentShader>() };
 
@@ -487,7 +457,7 @@ namespace demos
         std::unordered_map<std::string, size_t> material_map;
         std::unordered_map<std::string, std::string> mtl_texture_map = load_mtl_texture_map(assets_dir + "gm_construct_in_flatgrass.mtl");
 
-        const TriangleMesh map_mesh = load_obj(assets_dir + "gm_construct_in_flatgrass.obj", material_map);
+        const TriangleMesh<Vec3d> map_mesh = load_obj(assets_dir + "gm_construct_in_flatgrass.obj", material_map);
         map = std::make_shared<Polygon3D>();
         map->set_mesh(map_mesh);
         for (const auto& [name, mat_id] : material_map)
@@ -504,24 +474,22 @@ namespace demos
                 }
                 catch (const std::exception& e)
                 {
-                    // If texture loading fails, use default material
                     map->set_material(default_material, mat_id);
                 }
             }
             else
             {
-                // No texture specified for this material, use default
                 map->set_material(water_material, mat_id);
             }
         }
-        renderer->add_primitive(map);
+        scene_graph->add_item(map);
 
-        crosshair = std::make_shared<Ellipse2D>();
-        crosshair->set_radius(1.0, 1.0);
-        crosshair->set_color(Color4(1.0, 1.0, 1.0, 0.5));
-        crosshair->set_position(static_cast<Vec2d>(renderer->get_resolution() / 2));
-        crosshair->set_filled(true);
-        renderer->add_primitive(crosshair);
+        // crosshair = std::make_shared<Ellipse2D>();
+        // crosshair->set_radius(1.0, 1.0);
+        // crosshair->set_color(Color4(1.0, 1.0, 1.0, 0.5));
+        // crosshair->set_position(static_cast<Vec2d>(renderer->get_resolution() / 2));
+        // crosshair->set_filled(true);
+        // renderer->add_primitive(crosshair);
     }
 
     void ConstructDemo::render_frame(const double dt)
@@ -529,16 +497,17 @@ namespace demos
         poll_held_keys(dt);
         update_camera(dt);
 
-        debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
+        // debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
 
-        renderer->clear_frame();
-        renderer->render_frame();
-        renderer->present_frame();
+        surface->clear_screen();
+        surface->clear_frame_buffer();
+        renderer->draw_frame(*surface, view, projection);
+        surface->present();
     }
 
     void ConstructDemo::end()
     {
-        renderer->clear_scene();
+        renderer->get_scene_graph()->clear();
     }
 
     void ConstructDemo::handle_char(const int input)
@@ -570,7 +539,7 @@ namespace demos
             {
             case Key::E:
                 {
-                    crosshair->set_visible(!crosshair->is_visible());
+                    // crosshair->set_visible(!crosshair->is_visible());
                     break;
                 }
             default:
@@ -588,12 +557,11 @@ namespace demos
         case MouseEventType::MOVE:
             {
                 const Vec2d delta { event.position - prev_mouse_pos };
-                Camera& camera = renderer->get_camera();
-                camera.set_rotation(
+                view.set_rotation(
                     {
-                        camera.get_rotation().x + delta.y,
-                        camera.get_rotation().y + delta.x,
-                        camera.get_rotation().z
+                        view.get_rotation().x + delta.y,
+                        view.get_rotation().y + delta.x,
+                        view.get_rotation().z
                     }
                 );
                 prev_mouse_pos = event.position;
@@ -630,13 +598,12 @@ namespace demos
     {
         camera_velocity = camera_velocity * std::pow(0.85, dt * 60.0);
         camera_velocity = camera_velocity.limit(max_camera_speed);
-        Camera& camera = renderer->get_camera();
-        camera.set_position(camera.get_position() + camera_velocity * dt);
+        view.set_position(view.get_position() + camera_velocity * dt);
     }
 
     void ConstructDemo::camera_movement(const Key key, const double dt)
     {
-        Vec3d forward { renderer->get_camera().get_forward() };
+        Vec3d forward { view.get_forward() };
         forward.y = 0.0;
 
         switch (key)

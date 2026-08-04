@@ -3,7 +3,6 @@
 #include <stack>
 
 #include "gfx/core/primitive.h"
-#include "../geometry/types/frustum.h"
 #include "gfx/core/types/uuid.h"
 #include "view/view-bounds.h"
 
@@ -29,8 +28,8 @@ namespace gfx
 
         uint64_t cached_transform_generation = -1;
 
-        SceneNode& parent = nullptr;
-        std::vector<SceneNode&> children;
+        std::shared_ptr<SceneNode> parent = nullptr;
+        std::vector<std::shared_ptr<SceneNode>> children;
     };
 
 
@@ -41,7 +40,7 @@ namespace gfx
 
         SceneGraph();
 
-        SceneNode<VectorType>& get_root() const;
+        std::shared_ptr<SceneNode<VectorType>> get_root() const;
         void set_root_transform(const Transform<VectorType>& transform) const;
 
         bool transforms_dirty() const;
@@ -68,16 +67,16 @@ namespace gfx
 
         mutable std::vector<std::pair<std::shared_ptr<Primitive<VectorType>>, Transform<VectorType>>> _draw_queue;
         std::shared_ptr<SceneNode<VectorType>> _root;
-        std::unordered_map<UUID, std::unique_ptr<SceneNode<VectorType>>> _nodes;
+        std::unordered_map<UUID, std::shared_ptr<SceneNode<VectorType>>> _nodes;
     };
-
+    
     template <typename VectorType>
     SceneGraph<VectorType>::SceneGraph()
         : _root(std::make_shared<SceneNode<VectorType>>(nullptr))
         , _nodes(std::unordered_map<UUID, std::shared_ptr<SceneNode<VectorType>>>()) {}
 
     template <typename VectorType>
-    SceneNode<VectorType>& SceneGraph<VectorType>::get_root() const
+    std::shared_ptr<SceneNode<VectorType>> SceneGraph<VectorType>::get_root() const
     {
         return _root;
     }
@@ -97,8 +96,8 @@ namespace gfx
             {
                 continue;
             }
-            const int64_t current_version { node->primitive->get_transform_generation() };
-            if (current_version != node->cached_transform_version)
+            const int64_t current_generation { node->primitive->get_transform_generation() };
+            if (current_generation != node->cached_transform_generation)
             {
                 return true;
             }
@@ -114,7 +113,7 @@ namespace gfx
         const auto node { _nodes.contains(primitive->get_id()) ? _nodes.at(primitive->get_id()) : nullptr };
         if (node == nullptr)
         {
-            return Transform<VectorType>::identity();
+            return Transform<VectorType>();
         }
         if (node->primitive == nullptr)
         {
@@ -145,7 +144,7 @@ namespace gfx
                 node->global_transform = parent_transform;
             }
 
-            node->cached_transform_version = node->primitive ? node->primitive->get_transform_generation() : 0;
+            node->cached_transform_generation = node->primitive ? node->primitive->get_transform_generation() : 0;
 
             for (const auto& child : node->children)
             {

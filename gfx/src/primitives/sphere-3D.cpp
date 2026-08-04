@@ -2,19 +2,14 @@
 
 namespace gfx
 {
-    const TriangleMesh& Sphere3D::get_mesh() const
+    void Sphere3D::generate_mesh() const
     {
-        if (!is_mesh_dirty())
-        {
-            return _mesh_data;
-        }
-
         _mesh_data.clear();
 
         std::vector<Vec3d> vertices;
         std::vector<Vec3d> normals;
         std::vector<Vec2d> uvs;
-        std::vector<TriangleMesh::Face> faces;
+        std::vector<TriangleMesh<Vec3d>::Face> faces;
 
         for (int r = 0; r < _lat_segments; ++r)
         {
@@ -73,7 +68,7 @@ namespace gfx
                     uvs.push_back(uvb);
                     uvs.push_back(uvc);
 
-                    faces.push_back(TriangleMesh::Face { base + 0, base + 1, base + 2 });
+                    faces.push_back(TriangleMesh<Vec3d>::Face { base + 0, base + 1, base + 2 });
                 };
 
                 if (r == 0)
@@ -99,8 +94,6 @@ namespace gfx
         _mesh_data.set_colors(std::vector(_mesh_data.num_vertices(), get_color()));
 
         set_mesh_dirty(false);
-
-        return _mesh_data;
     }
 
 

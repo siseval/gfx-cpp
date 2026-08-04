@@ -5,11 +5,11 @@
 #include "gfx/core/types/color4.h"
 // #include "gfx/core/types/bitmap.h"
 #include "gfx/primitives/circle-2D.h"
-#include "gfx/primitives/ellipse-2D.h"
+#include "ellipse-2D.h"
 #include "gfx/primitives/polygon-2D.h"
-#include "gfx/primitives/polyline-2D.h"
+#include "polyline-2D.h"
 #include "gfx/primitives/text-2D.h"
-#include "gfx/text/font-manager-ttf.h"
+#include "font-manager-ttf.h"
 
 namespace gfx
 {

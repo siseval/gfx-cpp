@@ -8,51 +8,51 @@ using namespace gfx;
 
 namespace demos
 {
-    class FogShader : public FragmentShader
-    {
-        Color4 frag(const Input& input, const Uniforms& uniforms) const override
-        {
-            const double near { uniforms.near_plane };
-            const double far { uniforms.far_plane };
+    // class FogShader : public FragmentShader
+    // {
+    //     Color4 frag(const Input& input, const Uniforms& uniforms) const override
+    //     {
+    //         const double near { uniforms.near_plane };
+    //         const double far { uniforms.far_plane };
+    //
+    //         const double depth { std::clamp(input.depth, 0.0, 1.0) };
+    //         const double depth_linear = near * far / (far - depth * (far - near));
+    //
+    //         const double dist { std::clamp(depth_linear / far * 16.0, 0.0, 1.0) };
+    //
+    //         const Color4 color {
+    //             dist,
+    //             dist,
+    //             dist,
+    //             0.5
+    //         };
+    //
+    //         return color;
+    //     }
+    // };
 
-            const double depth { std::clamp(input.depth, 0.0, 1.0) };
-            const double depth_linear = near * far / (far - depth * (far - near));
-
-            const double dist { std::clamp(depth_linear / far * 16.0, 0.0, 1.0) };
-
-            const Color4 color {
-                dist,
-                dist,
-                dist,
-                0.5
-            };
-
-            return color;
-        }
-    };
-
-    class DepthShader : public FragmentShader
-    {
-        Color4 frag(const Input& input, const Uniforms& uniforms) const override
-        {
-            const double near { uniforms.near_plane };
-            const double far { uniforms.far_plane };
-
-            const double depth { std::clamp(input.depth, 0.0, 1.0) };
-            const double depth_linear = near * far / (far - depth * (far - near));
-
-            const double dist { std::clamp(depth_linear / far * 16.0, 0.0, 1.0) };
-
-            const Color4 color {
-                dist,
-                dist,
-                dist,
-                1.0
-            };
-
-            return color;
-        }
-    };
+    // class DepthShader : public FragmentShader
+    // {
+    //     Color4 frag(const Input& input, const Uniforms& uniforms) const override
+    //     {
+    //         const double near { uniforms.near_plane };
+    //         const double far { uniforms.far_plane };
+    //
+    //         const double depth { std::clamp(input.depth, 0.0, 1.0) };
+    //         const double depth_linear = near * far / (far - depth * (far - near));
+    //
+    //         const double dist { std::clamp(depth_linear / far * 16.0, 0.0, 1.0) };
+    //
+    //         const Color4 color {
+    //             dist,
+    //             dist,
+    //             dist,
+    //             1.0
+    //         };
+    //
+    //         return color;
+    //     }
+    // };
 
 
     class RedShader : public FragmentShader
@@ -107,26 +107,27 @@ namespace demos
         }
     };
 
-    TriangleMesh create_two_material_mesh()
+    static TriangleMesh<Vec3d> create_two_material_mesh()
     {
-        TriangleMesh mesh;
+        TriangleMesh<Vec3d> mesh;
 
         std::vector<Vec3d> vertices;
         std::vector<Vec3d> normals;
         std::vector<Vec2d> uvs;
-        std::vector<TriangleMesh::Face> faces;
+        std::vector<TriangleMesh<Vec3d>::Face> faces;
 
         const int resolution = 16;
 
-        auto emit = [&](const Vec3d& a,
-                        const Vec3d& b,
-                        const Vec3d& c,
-                        const Vec2d& uva,
-                        const Vec2d& uvb,
-                        const Vec2d& uvc,
-                        const Vec3d& normal,
-                        const size_t material_id)
-        {
+        auto emit = [&](
+            const Vec3d& a,
+            const Vec3d& b,
+            const Vec3d& c,
+            const Vec2d& uva,
+            const Vec2d& uvb,
+            const Vec2d& uvc,
+            const Vec3d& normal,
+            const size_t material_id
+        ) {
             const size_t base = vertices.size();
 
             vertices.push_back(a);
@@ -141,27 +142,27 @@ namespace demos
             uvs.push_back(uvb);
             uvs.push_back(uvc);
 
-            faces.push_back(TriangleMesh::Face { base + 0, base + 1, base + 2, material_id });
+            faces.push_back(TriangleMesh<Vec3d>::Face { base + 0, base + 1, base + 2, material_id });
         };
 
         for (int x = 0; x < resolution; ++x)
         {
             for (int z = 0; z < resolution; ++z)
             {
-                double x0 = (double)x / resolution - 0.5;
-                double x1 = (double)(x + 1) / resolution - 0.5;
-                double z0 = (double)z / resolution - 0.5;
-                double z1 = (double)(z + 1) / resolution - 0.5;
+                double x0 = static_cast<double>(x) / resolution - 0.5;
+                double x1 = static_cast<double>(x + 1) / resolution - 0.5;
+                double z0 = static_cast<double>(z) / resolution - 0.5;
+                double z1 = static_cast<double>(z + 1) / resolution - 0.5;
 
                 Vec3d v0 { x0, 0.5, z0 };
                 Vec3d v1 { x1, 0.5, z0 };
                 Vec3d v2 { x1, 0.5, z1 };
                 Vec3d v3 { x0, 0.5, z1 };
 
-                Vec2d uv0 { (double)x / resolution, (double)z / resolution };
-                Vec2d uv1 { (double)(x + 1) / resolution, (double)z / resolution };
-                Vec2d uv2 { (double)(x + 1) / resolution, (double)(z + 1) / resolution };
-                Vec2d uv3 { (double)x / resolution, (double)(z + 1) / resolution };
+                Vec2d uv0 { static_cast<double>(x) / resolution, static_cast<double>(z) / resolution };
+                Vec2d uv1 { static_cast<double>(x + 1) / resolution, static_cast<double>(z) / resolution };
+                Vec2d uv2 { static_cast<double>(x + 1) / resolution, static_cast<double>(z + 1) / resolution };
+                Vec2d uv3 { static_cast<double>(x) / resolution, static_cast<double>(z + 1) / resolution };
 
                 Vec3d n { 0, 1, 0 };
 
@@ -174,20 +175,20 @@ namespace demos
         {
             for (int z = 0; z < resolution; ++z)
             {
-                double x0 = (double)x / resolution - 0.5;
-                double x1 = (double)(x + 1) / resolution - 0.5;
-                double z0 = (double)z / resolution - 0.5;
-                double z1 = (double)(z + 1) / resolution - 0.5;
+                double x0 = static_cast<double>(x) / resolution - 0.5;
+                double x1 = static_cast<double>(x + 1) / resolution - 0.5;
+                double z0 = static_cast<double>(z) / resolution - 0.5;
+                double z1 = static_cast<double>(z + 1) / resolution - 0.5;
 
                 Vec3d v0 { x0, -0.5, z0 };
                 Vec3d v1 { x1, -0.5, z0 };
                 Vec3d v2 { x1, -0.5, z1 };
                 Vec3d v3 { x0, -0.5, z1 };
 
-                Vec2d uv0 { (double)x / resolution, (double)z / resolution };
-                Vec2d uv1 { (double)(x + 1) / resolution, (double)z / resolution };
-                Vec2d uv2 { (double)(x + 1) / resolution, (double)(z + 1) / resolution };
-                Vec2d uv3 { (double)x / resolution, (double)(z + 1) / resolution };
+                Vec2d uv0 { static_cast<double>(x) / resolution, static_cast<double>(z) / resolution };
+                Vec2d uv1 { static_cast<double>(x + 1) / resolution, static_cast<double>(z) / resolution };
+                Vec2d uv2 { static_cast<double>(x + 1) / resolution, static_cast<double>(z + 1) / resolution };
+                Vec2d uv3 { static_cast<double>(x) / resolution, static_cast<double>(z + 1) / resolution };
 
                 Vec3d n { 0, -1, 0 };
 
@@ -206,7 +207,7 @@ namespace demos
         return mesh;
     }
 
-    Texture create_checkered_texture()
+    static Texture create_checkered_texture()
     {
         const Vec2i resolution { 64, 64 };
         const Vec2i square_size { resolution.x / 8, resolution.y / 8 };
@@ -229,7 +230,7 @@ namespace demos
         return texture;
     }
 
-    Texture create_gradient_texture()
+    static Texture create_gradient_texture()
     {
         const Vec2i resolution { 64, 64 };
         Texture texture(resolution);
@@ -247,7 +248,7 @@ namespace demos
         return texture;
     }
 
-    Texture create_grass_texture()
+    static Texture create_grass_texture()
     {
         const Vec2i resolution { 64, 64 };
         Texture texture(resolution);
@@ -265,7 +266,7 @@ namespace demos
         return texture;
     }
 
-    Texture smooth_noise_texture(const Vec2i& resolution)
+    static Texture smooth_noise_texture(const Vec2i& resolution)
     {
         Texture texture(resolution);
 
@@ -275,7 +276,8 @@ namespace demos
             {
                 const double yt = static_cast<double>(y) / (resolution.y - 1);
                 const double xt = static_cast<double>(x) / (resolution.x - 1);
-                const double t = (std::sin(xt * std::numbers::pi * 4) + std::sin(yt * std::numbers::pi * 4)) * 0.5 + 0.5;
+                const double t = (std::sin(xt * std::numbers::pi * 4) + std::sin(yt * std::numbers::pi * 4)) * 0.5 +
+                                 0.5;
                 const Color4 color(t, t, t, 1.0);
                 texture.set_pixel(x, y, color);
             }
@@ -284,7 +286,7 @@ namespace demos
         return texture;
     }
 
-    Texture sphere_texture(const Vec2i& resolution)
+    static Texture sphere_texture(const Vec2i& resolution)
     {
         Texture texture(resolution);
 
@@ -312,8 +314,6 @@ namespace demos
 
     Color4 Test3DDemo::WaterSurfaceShader::frag(const Input& input, const Uniforms& uniforms) const
     {
-        Color4 out;
-
         constexpr double wave_freq = 20.0;
         constexpr double wave_speed = 3.0;
         constexpr double dist_falloff = 4.0;
@@ -342,7 +342,7 @@ namespace demos
         ripple_amount = inv_lerp(-0.05, 0.05, ripple_amount);
         ripple_amount = fmod(ripple_amount, 1.0);
 
-        out = base_color + Color4(std::fmod(ripple_amount, 1.0));
+        Color4 out { base_color + Color4(std::fmod(ripple_amount, 1.0)) };
 
         return out;
     }
@@ -396,26 +396,26 @@ namespace demos
 
     void Test3DDemo::init()
     {
-        renderer->clear_2D_scene();
-        renderer->clear_3D_scene();
-        renderer->set_resolution(res480);
-        renderer->set_clear_color(Color4(0.0, 0.0, 0.0));
-        renderer->get_render_3D()->set_texture_filtering_mode(Texture::FilteringMode::NEAREST);
-        Camera& camera { renderer->get_camera() };
+        auto scene_graph { renderer->get_scene_graph() };
+        Viewport& viewport { renderer->get_viewport() };
 
-        camera.set_position(0.0, 0.0, -5.0);
-        camera.set_rotation_degrees(0.0, 0.0, 0.0);
-        camera.set_fov_degrees(75.0);
-        camera.set_z_near(0.1);
-        camera.set_z_far(1000.0);
+        scene_graph->clear();
 
-        renderer->set_light_direction(-1.0, 1.0, -1.0);
-        renderer->set_ambient_light(0.5);
+        viewport.size = res480;
+        surface->set_clear_color(Color4(0.0, 0.0, 0.0));
+
+        renderer->settings.texture_filtering_mode = Texture::FilteringMode::NEAREST;
+
+        view.set_position(0.0, 0.0, -5.0);
+        view.set_rotation_degrees(0.0, 0.0, 0.0);
+        projection.set_fov_degrees(75.0);
+        projection.set_z_near(0.1);
+        projection.set_z_far(1000.0);
 
         const auto diffuse_shader { std::make_shared<DiffuseFragmentShader>() };
         const auto default_shader { std::make_shared<DefaultFragmentShader>() };
         const auto red_shader { std::make_shared<RedShader>() };
-        const auto fog_shader { std::make_shared<FogShader>() };
+        // const auto fog_shader { std::make_shared<FogShader>() };
         const auto banding_shader { std::make_shared<BandingShader>() };
         const auto diagonal_shader { std::make_shared<DiagonalShader>() };
 
@@ -427,9 +427,9 @@ namespace demos
 
         const auto diffuse_material { std::make_shared<Material>(diffuse_shader) };
         const auto grass_material { std::make_shared<Material>(diffuse_shader, grass_texture) };
-        const auto rainbow_checker_material { std::make_shared<Material>(diagonal_shader, checkered_texture) };
+        const auto rainbow_checker_material { std::make_shared<Material>(diffuse_shader, checkered_texture) };
         const auto smooth_noise_material { std::make_shared<Material>(diffuse_shader, noise_texture) };
-        const auto fog_material { std::make_shared<Material>(fog_shader) };
+        // const auto fog_material { std::make_shared<Material>(fog_shader) };
         const auto gradient_material { std::make_shared<Material>(diffuse_shader, gradient_texture) };
         const auto rainbow_material { std::make_shared<Material>(diagonal_shader) };
         const auto sphere_material { std::make_shared<Material>(diffuse_shader, sph_texture) };
@@ -444,12 +444,12 @@ namespace demos
         quad->set_material(water_material);
         // renderer->add_primitive(quad);
 
-        teapot = std::make_shared<Polygon3D>();
-        teapot->set_mesh(create_two_material_mesh());
-        teapot->set_position(0.0, 0.0, 30.0);
-        teapot->set_scale(10.0, 10.0, 10.0);
-        teapot->set_material(default_material, 0);
-        teapot->set_material(fog_material, 1);
+        // teapot = std::make_shared<Polygon3D>();
+        // teapot->set_mesh(create_two_material_mesh());
+        // teapot->set_position(0.0, 0.0, 30.0);
+        // teapot->set_scale(10.0, 10.0, 10.0);
+        // teapot->set_material(default_material, 0);
+        // teapot->set_material(fog_material, 1);
         // renderer->add_primitive(teapot);
 
         sphere = std::make_shared<Sphere3D>();
@@ -457,34 +457,34 @@ namespace demos
         sphere->set_color(0.8, 0.4, 0.4);
         sphere->set_num_segments(16);
         sphere->set_material(rainbow_checker_material);
-        renderer->add_primitive(sphere);
+        scene_graph->add_item(sphere);
 
         plane = std::make_shared<Plane3D>();
         plane->set_position(0.0, -15.0, 0.0);
         plane->set_size(20.0, 20.0);
         plane->set_color(0.4, 0.8, 0.4);
         plane->set_material(grass_material);
-        renderer->add_primitive(plane);
+        scene_graph->add_item(plane);
 
         cube = std::make_shared<Cuboid3D>();
         cube->set_size(2.0, 2.0, 2.0);
         cube->set_color(0.4, 0.4, 0.8);
         cube->set_material(smooth_noise_material);
-        renderer->add_primitive(cube);
+        scene_graph->add_item(cube);
 
-        crosshair = renderer->create_ellipse(
-            static_cast<Vec2d>(renderer->get_resolution() / 2),
-            { 1, 1 },
-            Color4(1.0, 1.0, 1.0, 0.75),
-            1.0
-        );
+        // crosshair = renderer->create_ellipse(
+        //     static_cast<Vec2d>(renderer->get_resolution() / 2),
+        //     { 1, 1 },
+        //     Color4(1.0, 1.0, 1.0, 0.75),
+        //     1.0
+        // );
 
         // renderer->get_render_3D()->add_fullscreen_shader(std::make_shared<DepthShader>());
         // renderer->get_render_3D()->add_fullscreen_shader(std::make_shared<DiagonalShader>());
         // renderer->get_render_3D()->add_fullscreen_shader(std::make_shared<BandingShader>());
 
-        crosshair->set_anchor(0.5, 0.5);
-        crosshair->set_filled(true);
+        // crosshair->set_anchor(0.5, 0.5);
+        // crosshair->set_filled(true);
         // renderer->add_primitive(crosshair);
 
         constexpr double min_range = 128.0;
@@ -495,10 +495,12 @@ namespace demos
         constexpr int num_spheres = 1000;
         constexpr int num_segments = 12;
 
-        const auto rand_pos = [](const double min, const double max)
-        {
-            return Vec3d::from_angles(random_double(0.0, 2.0 * std::numbers::pi), random_double(0.0, std::numbers::pi)).normalize() *
-                random_double(min, max);
+        const auto rand_pos = [](const double min, const double max) {
+            return Vec3d::from_angles(
+                       random_double(0.0, 2.0 * std::numbers::pi),
+                       random_double(0.0, std::numbers::pi)
+                   ).normalize() *
+                   random_double(min, max);
         };
 
         for (int i = 0; i < num_boxes; i++)
@@ -506,16 +508,18 @@ namespace demos
             auto box { std::make_shared<Cuboid3D>() };
 
             box->set_position(rand_pos(min_range, max_range));
-            box->set_size(Vec3d {
-                random_double(1.0, 3.0),
-                random_double(1.0, 3.0),
-                random_double(1.0, 3.0)
-            });
+            box->set_size(
+                Vec3d {
+                    random_double(1.0, 3.0),
+                    random_double(1.0, 3.0),
+                    random_double(1.0, 3.0)
+                }
+            );
             box->set_color(0.8, 0.8, 0.6);
             box->set_material(default_material);
 
             scene_items.push_back(box);
-            renderer->add_primitive(box);
+            scene_graph->add_item(box);
         }
 
         for (int i = 0; i < num_spheres; i++)
@@ -529,7 +533,7 @@ namespace demos
             sphere->set_num_segments(num_segments);
 
             scene_items.push_back(sphere);
-            renderer->add_primitive(sphere);
+            scene_graph->add_item(sphere);
         }
     }
 
@@ -547,10 +551,7 @@ namespace demos
         }
 
         random_spawn_timer += dt;
-        if (random_spawn&& random_spawn_timer 
-        >
-        random_spawn_interval_sec
-        )
+        if (random_spawn && random_spawn_timer > random_spawn_interval_sec)
         {
             spawn_ripple(get_random_position());
             random_spawn_timer = 0.0;
@@ -563,7 +564,7 @@ namespace demos
         );
 
 
-        debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
+        // debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
 
         cube->set_rotation_degrees(
             cube->get_rotation_degrees().x + dt * 30.0,
@@ -592,19 +593,18 @@ namespace demos
         poll_held_keys(dt);
         update_camera(dt);
 
-        renderer->clear_frame();
-        renderer->render_frame();
-        renderer->present_frame();
+        surface->clear_frame_buffer();
+        surface->clear_screen();
+        renderer->draw_frame(*surface, view, projection);
+        surface->present();
     }
 
     void Test3DDemo::end()
     {
-        renderer->clear_scene();
+        renderer->get_scene_graph()->clear();
     }
 
-    void Test3DDemo::handle_char(const int input)
-    {
-    }
+    void Test3DDemo::handle_char(const int input) {}
 
     void Test3DDemo::report_key(const KeyEvent event)
     {
@@ -631,7 +631,7 @@ namespace demos
             {
             case Key::E:
                 {
-                    crosshair->set_visible(!crosshair->is_visible());
+                    // crosshair->set_visible(!crosshair->is_visible());
                     break;
                 }
             default:
@@ -649,12 +649,11 @@ namespace demos
         case MouseEventType::MOVE:
             {
                 const Vec2d delta { event.position - prev_mouse_pos };
-                Camera& camera = renderer->get_camera();
-                camera.set_rotation(
+                view.set_rotation(
                     {
-                        camera.get_rotation().x + delta.y,
-                        camera.get_rotation().y + delta.x,
-                        camera.get_rotation().z
+                        view.get_rotation().x + delta.y,
+                        view.get_rotation().y + delta.x,
+                        view.get_rotation().z
                     }
                 );
                 prev_mouse_pos = event.position;
@@ -691,13 +690,12 @@ namespace demos
     {
         camera_velocity = camera_velocity * std::pow(0.85, dt * 60.0);
         camera_velocity = camera_velocity.limit(max_camera_speed);
-        Camera& camera = renderer->get_camera();
-        camera.set_position(camera.get_position() + camera_velocity * dt);
+        view.set_position(view.get_position() + camera_velocity * dt);
     }
 
     void Test3DDemo::camera_movement(const Key key, const double dt)
     {
-        Vec3d forward { renderer->get_camera().get_forward() };
+        Vec3d forward { view.get_forward() };
         forward.y = 0.0;
 
         switch (key)

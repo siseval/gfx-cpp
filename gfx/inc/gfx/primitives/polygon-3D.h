@@ -4,12 +4,14 @@
 
 namespace gfx
 {
-    class Polygon3D final : public Primitive
+    class Polygon3D final : public Primitive<Vec3d>
     {
     public:
 
-        const TriangleMesh& get_mesh() const override;
+        void set_mesh(const TriangleMesh<Vec3d>& mesh) const;
 
-        void set_mesh(const TriangleMesh& mesh) const;
+    protected:
+
+        void generate_mesh() const override;
     };
 }

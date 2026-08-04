@@ -85,6 +85,26 @@ namespace gfx
             _depth_buffer.at(i) = std::numeric_limits<double>::infinity();
         }
     }
+    
+    void RenderSurface::clear_frame_buffer(const Viewport& viewport)
+    {
+        if (viewport.offset == Vec2i::zero() && viewport.size == _resolution)
+        {
+            clear_frame_buffer();
+        }
+        
+        const Vec2i bottom_right { viewport.offset + viewport.size };
+        
+        for (size_t i = viewport.offset.x; i < bottom_right.x; ++i)
+        {
+            for (size_t j = viewport.offset.y; j < bottom_right.y; ++j)
+            {
+                const size_t index { j * _resolution.x + i };
+                _frame_buffer.data()[index] = std::byteswap(_clear_color.to_i32());
+                _depth_buffer.at(index) = std::numeric_limits<double>::infinity();
+            }
+        }
+    }
 
     void RenderSurface::set_resolution(const Vec2i new_resolution)
     {

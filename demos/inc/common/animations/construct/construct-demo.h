@@ -2,21 +2,24 @@
 
 #include "common/core/gfx-demo.h"
 
-#include "gfx/primitives/ellipse-2D.h"
+// #include "gfx/primitives/ellipse-2D.h"
 #include "gfx/primitives/polygon-3D.h"
 
 #include <map>
 
+#include "gfx/projections/perspective-projection.h"
+
 namespace demos
 {
-    class ConstructDemo : public GfxDemo
+    class ConstructDemo : public GfxDemo<gfx::Vec3d>
     {
     public:
 
-        ConstructDemo(const std::shared_ptr<gfx::RenderEngine> renderer, const std::shared_ptr<gfx::DebugViewer> debug_viewer = nullptr)
-            : GfxDemo(renderer, debug_viewer)
-        {
-        }
+        ConstructDemo(
+            const std::shared_ptr<gfx::RenderLayer<gfx::Vec3d>>& renderer,
+            const std::shared_ptr<gfx::RenderSurface>& surface
+        )
+            : GfxDemo(renderer, surface) {}
 
         void init() override;
         void render_frame(double dt) override;
@@ -34,18 +37,19 @@ namespace demos
     private:
 
         void update_camera(double dt);
-        void set_camera_velocity(gfx::Vec3d velocity);
         void camera_movement(Key key, double dt);
         void poll_held_keys(double dt);
 
-        std::vector<std::shared_ptr<gfx::Primitive3D>> scene_items;
+        std::vector<std::shared_ptr<gfx::Primitive<gfx::Vec3d>>> scene_items;
 
-        std::shared_ptr<gfx::Ellipse2D> crosshair;
+        // std::shared_ptr<gfx::Ellipse2D> crosshair;
         std::shared_ptr<gfx::Polygon3D> map;
 
         gfx::Vec2d prev_mouse_pos { 0.0, 0.0 };
 
-        gfx::Camera camera;
+        gfx::View<gfx::Vec3d> view;
+        gfx::PerspectiveProjection projection;
+        
         gfx::Vec3d camera_velocity { 0.0, 0.0, 0.0 };
         double camera_acceleration = 100.0;
         double camera_damping = 0.85;

@@ -19,6 +19,8 @@ add_library(gfx
         inc/gfx/projections/perspective-projection.h
         inc/gfx/core/view/viewport.h
         inc/gfx/core/view/projection.h
+        inc/gfx/core/scene-graph.h
+        inc/gfx/core/render-layer.h
 )
 
 file(GLOB_RECURSE GFX_SOURCES CONFIGURE_DEPENDS

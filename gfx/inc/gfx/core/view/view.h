@@ -58,7 +58,7 @@ namespace gfx
     template <typename VectorType>
     View<VectorType>::MatrixType View<VectorType>::get_matrix() const
     {
-        return Transform<VectorType>(_position, _rotation, VectorType::one()).get_matrix();
+        return Transform<VectorType>(_position, _rotation, VectorType::one()).get_matrix().inverse();
     }
 
     template <typename VectorType>

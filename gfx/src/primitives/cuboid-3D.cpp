@@ -2,13 +2,26 @@
 
 namespace gfx
 {
-    const TriangleMesh& Cuboid3D::get_mesh() const
+    void Cuboid3D::set_size(const Vec3d& new_size)
     {
-        if (!is_mesh_dirty())
-        {
-            return _mesh_data;
-        }
+        _size = new_size;
+        set_mesh_dirty(true);
+    }
 
+
+    void Cuboid3D::set_size(const double width, const double height, const double depth)
+    {
+        _size = Vec3d { width, height, depth };
+        set_mesh_dirty(true);
+    }
+
+    Vec3d Cuboid3D::get_size() const
+    {
+        return _size;
+    }
+
+    void Cuboid3D::generate_mesh() const
+    {
         _mesh_data.clear();
 
         const double w { _size.x * 0.5 };
@@ -132,19 +145,19 @@ namespace gfx
             { 1.0, 0.0 }
         };
 
-        const std::vector<TriangleMesh::Face> faces {
-            { 0, 1, 2 },
-            { 3, 4, 5 },
-            { 6, 7, 8 },
-            { 9, 10, 11 },
-            { 12, 13, 14 },
-            { 15, 16, 17 },
-            { 18, 19, 20 },
-            { 21, 22, 23 },
-            { 24, 25, 26 },
-            { 27, 28, 29 },
-            { 30, 31, 32 },
-            { 33, 34, 35 }
+        const std::vector<TriangleMesh<Vec3d>::Face> faces {
+            { .v1 = 0, .v2 = 1, .v3 = 2 },
+            { .v1 = 3, .v2 = 4, .v3 = 5 },
+            { .v1 = 6, .v2 = 7, .v3 = 8 },
+            { .v1 = 9, .v2 = 10, .v3 = 11 },
+            { .v1 = 12, .v2 = 13, .v3 = 14 },
+            { .v1 = 15, .v2 = 16, .v3 = 17 },
+            { .v1 = 18, .v2 = 19, .v3 = 20 },
+            { .v1 = 21, .v2 = 22, .v3 = 23 },
+            { .v1 = 24, .v2 = 25, .v3 = 26 },
+            { .v1 = 27, .v2 = 28, .v3 = 29 },
+            { .v1 = 30, .v2 = 31, .v3 = 32 },
+            { .v1 = 33, .v2 = 34, .v3 = 35 }
         };
 
         _mesh_data.set_vertices(std::move(vertices));
@@ -154,25 +167,5 @@ namespace gfx
         _mesh_data.set_colors(std::vector(_mesh_data.num_vertices(), get_color()));
 
         set_mesh_dirty(false);
-
-        return _mesh_data;
-    }
-
-
-    void Cuboid3D::set_size(const Vec3d& new_size)
-    {
-        _size = new_size;
-        set_mesh_dirty(true);
-    }
-
-    void Cuboid3D::set_size(const double width, const double height, const double depth)
-    {
-        _size = Vec3d { width, height, depth };
-        set_mesh_dirty(true);
-    }
-
-    Vec3d Cuboid3D::get_size() const
-    {
-        return _size;
     }
 }

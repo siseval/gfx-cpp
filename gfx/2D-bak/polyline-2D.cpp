@@ -1,9 +1,9 @@
-#include "gfx/primitives/polyline-2D.h"
+#include "polyline-2D.h"
 
 #include "gfx/geometry/types/polygon.h"
-#include "gfx/geometry/rasterize.h"
+#include "rasterize.h"
 #include "gfx/geometry/transform-2D.h"
-#include "gfx/geometry/triangulate.h"
+#include "triangulate.h"
 
 
 namespace gfx

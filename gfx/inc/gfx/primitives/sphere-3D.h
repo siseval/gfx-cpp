@@ -4,11 +4,9 @@
 
 namespace gfx
 {
-    class Sphere3D final : public Primitive
+    class Sphere3D final : public Primitive<Vec3d>
     {
     public:
-
-        const TriangleMesh& get_mesh() const override;
 
         void set_radius(double r);
         double get_radius() const;
@@ -17,6 +15,10 @@ namespace gfx
         void set_num_lon_segments(int segments);
         void set_num_segments(int lat, int lon);
         void set_num_segments(int segments);
+
+    protected:
+
+        void generate_mesh() const override;
 
     private:
 

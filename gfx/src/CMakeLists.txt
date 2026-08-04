@@ -6,7 +6,7 @@ add_subdirectory(surfaces)
 add_subdirectory(utils)
 add_subdirectory(text)
 add_subdirectory(geometry)
-add_subdirectory(debug)
+#add_subdirectory(debug)
 
 add_library(gfx INTERFACE)
 
@@ -19,7 +19,7 @@ target_link_libraries(gfx INTERFACE
         gfx_utils
         gfx_text
         gfx_geometry
-        gfx_debug
+        #gfx_debug
 )
 
 target_include_directories(gfx INTERFACE

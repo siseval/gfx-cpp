@@ -1,26 +1,190 @@
-#include "gfx/core/render-3D.h"
+#pragma once
 
-#include <algorithm>
-#include <chrono>
-#include <cmath>
 #include <map>
+#include <memory>
 #include <mutex>
-#include <ranges>
-#include <thread>
-#include <vector>
 
-#include "gfx/math/box2.h"
+#include "gfx/core/primitive.h"
+#include "gfx/core/render-surface.h"
+#include "gfx/core/scene-graph.h"
+#include "gfx/core/thread-pool.h"
+#include "gfx/core/view/projection.h"
+#include "gfx/core/view/view.h"
 
 namespace gfx
 {
-    Render3D::Render3D(const std::shared_ptr<RenderSurface>& surface)
-        : _ambient_light(0.0)
-        , _scene_graph(std::make_shared<SceneGraph>())
-        , _surface(surface)
+    template <typename VectorType>
+    class RenderLayer
+    {
+    public:
+
+        struct Settings
+        {
+            bool multicore_vertex_transformation { true };
+            bool multicore_rasterization { true };
+            Texture::FilteringMode texture_filtering_mode { Texture::FilteringMode::NEAREST };
+        };
+
+        using MatrixType = Transform<VectorType>::MatrixType;
+
+        explicit RenderLayer(const Viewport& viewport);
+
+        void draw_frame(
+            RenderSurface& render_surface,
+            const View<VectorType>& view,
+            const Projection<VectorType>& projection
+        ) const;
+
+        std::shared_ptr<SceneGraph<VectorType>> get_scene_graph() const;
+        Viewport& get_viewport();
+
+        int get_num_triangles() const;
+
+        void add_fullscreen_shader(std::shared_ptr<FragmentShader> shader);
+        void remove_fullscreen_shader(std::shared_ptr<FragmentShader> shader);
+        void clear_fullscreen_shaders();
+
+        Settings settings;
+
+    private:
+
+        static constexpr int TILE_SIZE = 32;
+
+        struct ClipVertex
+        {
+            VectorType pos;
+            double w;
+            Vec2d uv;
+            Vec3d normal;
+            Color4 color;
+        };
+
+        struct ClipTriangle
+        {
+            ClipVertex v0;
+            ClipVertex v1;
+            ClipVertex v2;
+
+            ClipTriangle()
+                : v0()
+                , v1()
+                , v2() {}
+
+            ClipTriangle(const ClipVertex& v0, const ClipVertex& v1, const ClipVertex& v2)
+                : v0(v0)
+                , v1(v1)
+                , v2(v2) {}
+        };
+
+        struct ScreenVertex
+        {
+            Vec2d pos;
+            Vec3d normal;
+            Vec2d uv;
+            Color4 color;
+            double z_over_w;
+            double inv_w;
+        };
+
+        struct ScreenTriangle
+        {
+            ScreenVertex v0;
+            ScreenVertex v1;
+            ScreenVertex v2;
+            int material_id;
+
+            ScreenTriangle(
+                const ScreenVertex& v0,
+                const ScreenVertex& v1,
+                const ScreenVertex& v2,
+                const int material_id
+            )
+                : v0(v0)
+                , v1(v1)
+                , v2(v2)
+                , material_id(material_id) {}
+        };
+
+        struct Tile
+        {
+            Vec2i screen_pos;
+            std::map<int, std::vector<ScreenTriangle>> material_batches;
+            std::array<int, TILE_SIZE * TILE_SIZE> triangle_index_buffer;
+            std::array<int, TILE_SIZE * TILE_SIZE> material_id_buffer;
+            std::array<double, TILE_SIZE * TILE_SIZE> depth_buffer;
+
+            explicit Tile(const Vec2i screen_pos)
+                : screen_pos(screen_pos)
+                , triangle_index_buffer()
+                , material_id_buffer()
+            {
+                depth_buffer.fill(std::numeric_limits<float>::infinity());
+            }
+        };
+
+        using DrawQueue = std::vector<std::pair<std::shared_ptr<Primitive<VectorType>>, Transform<VectorType>>>;
+
+        std::unordered_map<int, std::shared_ptr<Material>> build_material_map(
+            const DrawQueue& draw_queue
+        ) const;
+
+        void generate_screen_triangles(
+            const View<VectorType>& view,
+            const Projection<VectorType>& projection,
+            const DrawQueue& draw_queue
+        ) const;
+
+        void generate_screen_triangles_multithreaded(
+            const View<VectorType>& view,
+            const Projection<VectorType>& projection,
+            const DrawQueue& draw_queue
+        ) const;
+
+        void generate_tiles() const;
+        void bin_triangles(const std::vector<ScreenTriangle>& triangles, std::vector<Tile>& tiles) const;
+
+        void render_tile(
+            Tile& tile,
+            RenderSurface& render_surface,
+            const std::unordered_map<int, std::shared_ptr<Material>>& material_map,
+            double t
+        ) const;
+
+        static void rasterize_triangle_in_tile(const ScreenTriangle& triangle, int tri_index, Tile& tile);
+
+        static int clip_against_near_plane(std::array<ClipTriangle, 2>& clip_triangles) requires std::same_as<
+            VectorType, Vec3d>;
+
+        VertexShader<VectorType>::Output default_vertex_shader(
+            const VertexShader<VectorType>::Input& input,
+            const VertexShader<VectorType>::Uniforms& uniforms
+        ) const;
+
+        Viewport _viewport;
+
+        std::shared_ptr<SceneGraph<VectorType>> _scene_graph;
+        std::shared_ptr<ThreadPool> _thread_pool;
+        std::vector<std::shared_ptr<FragmentShader>> _fullscreen_shaders;
+
+        mutable std::vector<ScreenTriangle> _screen_triangles;
+
+        mutable Vec2i _last_resolution { 0, 0 };
+        mutable std::vector<Tile> _tiles;
+    };
+
+
+    template <typename VectorType>
+    RenderLayer<VectorType>::RenderLayer(const Viewport& viewport)
+        : _viewport(viewport)
+        , _scene_graph(std::make_shared<SceneGraph<VectorType>>())
         , _thread_pool(std::make_shared<ThreadPool>(std::thread::hardware_concurrency())) {}
 
-
-    void Render3D::draw_frame() const
+    template <typename VectorType>
+    void RenderLayer<VectorType>::draw_frame(
+        RenderSurface& render_surface,
+        const View<VectorType>& view,
+        const Projection<VectorType>& projection
+    ) const
     {
         const double t {
             std::chrono::duration<double, std::milli>(
@@ -28,25 +192,27 @@ namespace gfx
             ).count() / 1000.0
         };
 
-        std::unordered_map<int, std::shared_ptr<Material>> material_map;
-        if (_multicore_vertex_transformation)
+        const DrawQueue& draw_queue { _scene_graph->get_draw_queue(projection.get_view_bounds(view, _viewport)) };
+        const auto material_map { build_material_map(draw_queue) };
+
+        if (settings.multicore_vertex_transformation)
         {
-            generate_screen_triangles_multithreaded(material_map);
+            generate_screen_triangles_multithreaded(view, projection, draw_queue);
         }
         else
         {
-            generate_screen_triangles(material_map);
+            generate_screen_triangles(view, projection, draw_queue);
         }
 
         generate_tiles();
         bin_triangles(_screen_triangles, _tiles);
 
-        if (_multicore_rasterization)
+        if (settings.multicore_rasterization)
         {
             _thread_pool->run(
                 static_cast<int>(_tiles.size()),
                 [&](const int tile_index) {
-                    render_tile(_tiles[tile_index], material_map, t);
+                    render_tile(_tiles[tile_index], render_surface, material_map, t);
                 }
             );
         }
@@ -54,31 +220,17 @@ namespace gfx
         {
             for (auto& tile : _tiles)
             {
-                render_tile(tile, material_map, t);
+                render_tile(tile, render_surface, material_map, t);
             }
         }
     }
 
-
-    void Render3D::generate_screen_triangles(std::unordered_map<int, std::shared_ptr<Material>>& material_map) const
+    template <typename VectorType>
+    std::unordered_map<int, std::shared_ptr<Material>> RenderLayer<VectorType>::build_material_map(
+        const DrawQueue& draw_queue
+    ) const
     {
-        _screen_triangles.clear();
-
-        const double t {
-            std::chrono::duration<double, std::milli>(
-                std::chrono::high_resolution_clock::now().time_since_epoch()
-            ).count() / 1000.0
-        };
-        const Vec2i resolution { _surface->get_resolution() };
-        const double aspect_ratio { static_cast<double>(resolution.x) / static_cast<double>(resolution.y) };
-
-        const Camera& cam { get_camera() };
-        const Matrix4x4d& view_matrix { cam.get_view_matrix() };
-        const Matrix4x4d& projection_matrix { cam.get_projection_matrix(aspect_ratio) };
-        const Matrix4x4d vp_matrix { projection_matrix * view_matrix };
-
-        const auto& draw_queue { _scene_graph->get_draw_queue(cam.get_frustum(aspect_ratio)) };
-        const int num_primitives = static_cast<int>(draw_queue.size());
+        std::unordered_map<int, std::shared_ptr<Material>> material_map;
 
         for (const auto& primitive : draw_queue | std::views::keys)
         {
@@ -91,44 +243,72 @@ namespace gfx
             }
         }
 
+        return material_map;
+    }
+
+    template <typename VectorType>
+    void RenderLayer<VectorType>::generate_screen_triangles(
+        const View<VectorType>& view,
+        const Projection<VectorType>& projection,
+        const DrawQueue& draw_queue
+    ) const
+    {
+        _screen_triangles.clear();
+
+        const double t {
+            std::chrono::duration<double, std::milli>(
+                std::chrono::high_resolution_clock::now().time_since_epoch()
+            ).count() / 1000.0
+        };
+
+        const Vec2i resolution { _viewport.size };
+        const double aspect_ratio { _viewport.get_aspect_ratio() };
+
+        const MatrixType& view_matrix { view.get_matrix() };
+        const MatrixType& projection_matrix { projection.get_matrix(aspect_ratio) };
+        const MatrixType vp_matrix { projection_matrix * view_matrix };
+
+        const int num_primitives = static_cast<int>(draw_queue.size());
+
         for (int i = 0; i < num_primitives; ++i)
         {
             const auto& [primitive, transform] = draw_queue[i];
-            const TriangleMesh& mesh { primitive->get_mesh() };
+
+            const TriangleMesh<VectorType>& mesh { primitive->get_mesh() };
             const auto& materials = primitive->get_materials();
+
+            const MatrixType model_matrix { transform.get_matrix() };
 
             const auto& vertices = mesh.get_vertices();
             const auto& normals = mesh.get_normals();
             const auto& uvs = mesh.get_uvs();
             const auto& colors = mesh.get_colors();
 
-            const Matrix4x4d mvp_matrix = vp_matrix * transform;
+            const MatrixType mvp_matrix = vp_matrix * model_matrix;
 
             std::vector<ClipVertex> vertex_cache(vertices.size());
 
             const auto& vert_shader = primitive->get_vertex_shader();
 
-            const VertexShader::Uniforms uniforms {
-                .t                 = t,
-                .model_matrix      = transform,
-                .view_matrix       = view_matrix,
-                .projection_matrix = projection_matrix,
-                .mvp_matrix        = mvp_matrix
+            const typename VertexShader<VectorType>::Uniforms uniforms {
+                .t            = t,
+                .model_matrix = model_matrix,
+                .mvp_matrix   = mvp_matrix
             };
 
             for (size_t j = 0; j < vertices.size(); ++j)
             {
-                const VertexShader::Input vert_in {
+                const typename VertexShader<VectorType>::Input vert_in {
                     .pos    = vertices[j],
                     .normal = normals[j]
                 };
 
-                const auto [xyz, w, normal] {
+                const auto [pos, w, normal] {
                     vert_shader ? vert_shader->vert(vert_in, uniforms) : default_vertex_shader(vert_in, uniforms)
                 };
 
-                vertex_cache[j] = {
-                    .xyz    = xyz,
+                vertex_cache[j] = ClipVertex {
+                    .pos    = pos,
                     .w      = w,
                     .uv     = uvs[j],
                     .normal = normal,
@@ -141,7 +321,11 @@ namespace gfx
                 std::array<ClipTriangle, 2> clip_triangles;
                 clip_triangles[0] = { vertex_cache[face.v1], vertex_cache[face.v2], vertex_cache[face.v3] };
 
-                const int num_clipped { clip_against_near_plane(clip_triangles) };
+                int num_clipped { 0 };
+                if constexpr (std::same_as<VectorType, Vec3d>)
+                {
+                    num_clipped = clip_against_near_plane(clip_triangles);
+                }
 
                 for (int tri_index = 0; tri_index < num_clipped; ++tri_index)
                 {
@@ -152,13 +336,13 @@ namespace gfx
                             const double inv_w = 1.0 / clip_vertex.w;
                             return ScreenVertex {
                                 .pos = {
-                                    (clip_vertex.xyz.x * inv_w * 0.5 + 0.5) * resolution.x,
-                                    (clip_vertex.xyz.y * inv_w * 0.5 + 0.5) * resolution.y
+                                    (clip_vertex.pos.x * inv_w * 0.5 + 0.5) * resolution.x,
+                                    (clip_vertex.pos.y * inv_w * 0.5 + 0.5) * resolution.y
                                 },
                                 .normal   = clip_vertex.normal,
                                 .uv       = clip_vertex.uv,
                                 .color    = clip_vertex.color,
-                                .z_over_w = clip_vertex.xyz.z * inv_w,
+                                .z_over_w = clip_vertex.pos.z * inv_w,
                                 .inv_w    = inv_w
                             };
                         }
@@ -192,8 +376,11 @@ namespace gfx
         }
     }
 
-    void Render3D::generate_screen_triangles_multithreaded(
-        std::unordered_map<int, std::shared_ptr<Material>>& material_map
+    template <typename VectorType>
+    void RenderLayer<VectorType>::generate_screen_triangles_multithreaded(
+        const View<VectorType>& view,
+        const Projection<VectorType>& projection,
+        const DrawQueue& draw_queue
     ) const
     {
         _screen_triangles.clear();
@@ -204,27 +391,14 @@ namespace gfx
             ).count() / 1000.0
         };
 
-        const Vec2i resolution { _surface->get_resolution() };
-        const double aspect_ratio { static_cast<double>(resolution.x) / static_cast<double>(resolution.y) };
+        const Vec2i resolution { _viewport.size };
+        const double aspect_ratio { _viewport.get_aspect_ratio() };
 
-        const Camera& cam { get_camera() };
-        const Matrix4x4d& view_matrix { cam.get_view_matrix() };
-        const Matrix4x4d& projection_matrix { cam.get_projection_matrix(aspect_ratio) };
-        const Matrix4x4d vp_matrix { projection_matrix * view_matrix };
+        const MatrixType& view_matrix { view.get_matrix() };
+        const MatrixType& projection_matrix { projection.get_matrix(aspect_ratio) };
+        const MatrixType vp_matrix { projection_matrix * view_matrix };
 
-        const auto& draw_queue { _scene_graph->get_draw_queue(cam.get_frustum(aspect_ratio)) };
         const int num_primitives { static_cast<int>(draw_queue.size()) };
-
-        for (const auto& primitive : draw_queue | std::views::keys)
-        {
-            for (const auto& material : primitive->get_materials())
-            {
-                if (material)
-                {
-                    material_map[material->get_id()] = material;
-                }
-            }
-        }
 
         std::mutex merge_mutex;
 
@@ -232,15 +406,17 @@ namespace gfx
             num_primitives,
             [&](const int i) {
                 const auto& [primitive, transform] = draw_queue[i];
-                const TriangleMesh& mesh { primitive->get_mesh() };
+                const TriangleMesh<VectorType>& mesh { primitive->get_mesh() };
                 const auto& materials = primitive->get_materials();
+
+                const MatrixType model_matrix { transform.get_matrix() };
 
                 const auto& vertices = mesh.get_vertices();
                 const auto& normals = mesh.get_normals();
                 const auto& uvs = mesh.get_uvs();
                 const auto& colors = mesh.get_colors();
 
-                const Matrix4x4d mvp_matrix = vp_matrix * transform;
+                const MatrixType mvp_matrix = vp_matrix * model_matrix;
 
                 std::vector<ScreenTriangle> local_triangles;
                 local_triangles.reserve(mesh.get_faces().size());
@@ -249,23 +425,25 @@ namespace gfx
 
                 const auto& vert_shader = primitive->get_vertex_shader();
 
-                const VertexShader::Uniforms uniforms {
-                    .t                 = t,
-                    .model_matrix      = transform,
-                    .view_matrix       = view_matrix,
-                    .projection_matrix = projection_matrix,
-                    .mvp_matrix        = mvp_matrix
+                const typename VertexShader<VectorType>::Uniforms uniforms {
+                    .t            = t,
+                    .model_matrix = model_matrix,
+                    .mvp_matrix   = mvp_matrix
                 };
 
                 for (size_t j = 0; j < vertices.size(); ++j)
                 {
-                    const VertexShader::Input vert_in { .pos = vertices[j], .normal = normals[j] };
-                    const VertexShader::Output vert_out {
+                    const typename VertexShader<VectorType>::Input vert_in {
+                        .pos    = vertices[j],
+                        .normal = normals[j]
+                    };
+
+                    const typename VertexShader<VectorType>::Output vert_out {
                         vert_shader ? vert_shader->vert(vert_in, uniforms) : default_vertex_shader(vert_in, uniforms)
                     };
 
                     vertex_cache[j] = {
-                        .xyz    = vert_out.xyz,
+                        .pos    = vert_out.pos,
                         .w      = vert_out.w,
                         .uv     = uvs[j],
                         .normal = vert_out.normal,
@@ -288,13 +466,13 @@ namespace gfx
                             const double inv_w = 1.0 / clip_vertex.w;
                             return ScreenVertex {
                                 .pos = {
-                                    (clip_vertex.xyz.x * inv_w * 0.5 + 0.5) * resolution.x,
-                                    (clip_vertex.xyz.y * inv_w * 0.5 + 0.5) * resolution.y
+                                    (clip_vertex.pos.x * inv_w * 0.5 + 0.5) * resolution.x,
+                                    (clip_vertex.pos.y * inv_w * 0.5 + 0.5) * resolution.y
                                 },
                                 .normal   = clip_vertex.normal,
                                 .uv       = clip_vertex.uv,
                                 .color    = clip_vertex.color,
-                                .z_over_w = clip_vertex.xyz.z * inv_w,
+                                .z_over_w = clip_vertex.pos.z * inv_w,
                                 .inv_w    = inv_w
                             };
                         };
@@ -351,9 +529,9 @@ namespace gfx
     //     };
     //
     //     const Camera &view { get_camera() };
-    //     const Matrix4x4d &view_matrix { view.get_view_matrix() };
-    //     const Matrix4x4d &projection_matrix { view.get_projection_matrix(aspect_ratio) };
-    //     const Matrix4x4d &vp_matrix { projection_matrix * view_matrix };
+    //     const MatrixType &view_matrix { view.get_view_matrix() };
+    //     const MatrixType &projection_matrix { view.get_projection_matrix(aspect_ratio) };
+    //     const MatrixType &vp_matrix { projection_matrix * view_matrix };
     //
     //     const auto &draw_queue { scene_graph->get_draw_queue(view.get_frustum(aspect_ratio)) };
     //     for (const auto &[primitive, transform] : draw_queue)
@@ -397,7 +575,7 @@ namespace gfx
     //                     };
     //
     //                     return ClipVertex {
-    //                         .xyz = out.xyz,
+    //                         .pos = out.pos,
     //                         .w = out.w,
     //                         .uv = mesh.get_uvs()[source_index],
     //                         .normal = out.normal,
@@ -418,7 +596,7 @@ namespace gfx
     //             const auto clip_to_screen {
     //                 [&](const ClipVertex clip_vertex) {
     //                     const double inv_w { 1.0 / clip_vertex.w };
-    //                     const Vec3d ndc { clip_vertex.xyz * inv_w };
+    //                     const Vec3d ndc { clip_vertex.pos * inv_w };
     //
     //                     return ScreenVertex {
     //                         .pos = {
@@ -468,138 +646,48 @@ namespace gfx
     //     }
     // }
 
-    void Render3D::clear_frame() const
-    {
-        _surface->clear_frame_buffer();
-        _surface->clear_screen();
-    }
-
-    void Render3D::present_frame() const
-    {
-        _surface->present();
-    }
-
-    void Render3D::add_item(const std::shared_ptr<Primitive>& item) const
-    {
-        _scene_graph->add_item(item);
-    }
-
-    void Render3D::remove_item(const std::shared_ptr<Primitive>& item) const
-    {
-        _scene_graph->remove_item(item);
-    }
-
-    bool Render3D::contains_item(const std::shared_ptr<Primitive>& item) const
-    {
-        return _scene_graph->contains_item(item);
-    }
-
-    void Render3D::clear_items() const
-    {
-        _scene_graph->clear();
-    }
-
-    std::shared_ptr<SceneGraph> Render3D::get_scene_graph() const
+    template <typename VectorType>
+    std::shared_ptr<SceneGraph<VectorType>> RenderLayer<VectorType>::get_scene_graph() const
     {
         return _scene_graph;
     }
 
-    std::shared_ptr<RenderSurface> Render3D::get_render_surface() const
+    template <typename VectorType>
+    Viewport& RenderLayer<VectorType>::get_viewport()
     {
-        return _surface;
+        return _viewport;
     }
 
-    void Render3D::set_camera(const Camera& cam)
-    {
-        _camera = cam;
-    }
-
-    void Render3D::set_light_direction(const Vec3d dir)
-    {
-        _light_dir = dir.normalize();
-    }
-
-    void Render3D::set_ambient_light(const double intensity)
-    {
-        _ambient_light = intensity;
-    }
-
-    void Render3D::set_render_surface(const std::shared_ptr<RenderSurface> new_surface)
-    {
-        _surface = new_surface;
-    }
-
-    void Render3D::set_texture_filtering_mode(const Texture::FilteringMode mode)
-    {
-        _texture_filtering_mode = mode;
-    }
-
-    Texture::FilteringMode Render3D::get_texture_filtering_mode() const
-    {
-        return _texture_filtering_mode;
-    }
-
-    int Render3D::num_items() const
-    {
-        return _scene_graph->num_items();
-    }
-
-    Vec2i Render3D::get_resolution() const
-    {
-        return _surface->get_resolution();
-    }
-
-    int Render3D::get_num_triangles() const
+    template <typename VectorType>
+    int RenderLayer<VectorType>::get_num_triangles() const
     {
         return _screen_triangles.size();
     }
 
-    const Camera& Render3D::get_camera() const
-    {
-        return _camera;
-    }
-
-    Camera& Render3D::get_camera()
-    {
-        return _camera;
-    }
-
-    Vec3d Render3D::get_light_direction() const
-    {
-        return _light_dir;
-    }
-
-    double Render3D::get_ambient_light() const
-    {
-        return _ambient_light;
-    }
-
-    void Render3D::add_fullscreen_shader(const std::shared_ptr<FragmentShader> shader)
+    template <typename VectorType>
+    void RenderLayer<VectorType>::add_fullscreen_shader(const std::shared_ptr<FragmentShader> shader)
     {
         _fullscreen_shaders.push_back(shader);
     }
 
-    void Render3D::remove_fullscreen_shader(const std::shared_ptr<FragmentShader> shader)
+    template <typename VectorType>
+    void RenderLayer<VectorType>::remove_fullscreen_shader(const std::shared_ptr<FragmentShader> shader)
     {
         std::erase(_fullscreen_shaders, shader);
     }
 
-    void Render3D::clear_fullscreen_shaders()
+    template <typename VectorType>
+    void RenderLayer<VectorType>::clear_fullscreen_shaders()
     {
         _fullscreen_shaders.clear();
     }
 
-    void Render3D::set_multicore_vertex_transformation(const bool enable)
-    {
-        _multicore_vertex_transformation = enable;
-    }
-
-    void Render3D::set_multicore_rasterization(const bool enable)
-    {
-        _multicore_rasterization = enable;
-    }
-
-    void Render3D::rasterize_triangle_in_tile(const ScreenTriangle& triangle, const int tri_index, Tile& tile)
+    template <typename VectorType>
+    void RenderLayer<VectorType>::rasterize_triangle_in_tile(
+        const ScreenTriangle& triangle,
+        const int tri_index,
+        Tile& tile
+    )
     {
         Box2d bounds {
             static_cast<Vec2d>(Vec2d {
@@ -690,9 +778,10 @@ namespace gfx
         }
     }
 
-    void Render3D::generate_tiles() const
+    template <typename VectorType>
+    void RenderLayer<VectorType>::generate_tiles() const
     {
-        const Vec2i resolution { _surface->get_resolution() };
+        const Vec2i resolution { _viewport.size };
         if (resolution == _last_resolution)
         {
             for (auto& tile : _tiles)
@@ -718,9 +807,13 @@ namespace gfx
         _last_resolution = resolution;
     }
 
-    void Render3D::bin_triangles(const std::vector<ScreenTriangle>& triangles, std::vector<Tile>& tiles) const
+    template <typename VectorType>
+    void RenderLayer<VectorType>::bin_triangles(
+        const std::vector<ScreenTriangle>& triangles,
+        std::vector<Tile>& tiles
+    ) const
     {
-        const Vec2i resolution { _surface->get_resolution() };
+        const Vec2i resolution { _viewport.size };
 
         for (const auto& triangle : triangles)
         {
@@ -766,13 +859,15 @@ namespace gfx
         }
     }
 
-    void Render3D::render_tile(
+    template <typename VectorType>
+    void RenderLayer<VectorType>::render_tile(
         Tile& tile,
+        RenderSurface& render_surface,
         const std::unordered_map<int, std::shared_ptr<Material>>& material_map,
         const double t
     ) const
     {
-        const Vec2i resolution { _surface->get_resolution() };
+        const Vec2i resolution { _viewport.size };
         constexpr int num_pixels { TILE_SIZE * TILE_SIZE };
 
         for (const auto& tri : tile.material_batches | std::views::values)
@@ -785,10 +880,8 @@ namespace gfx
 
         const FragmentShader::Uniforms uniforms {
             .t                 = t,
-            .light_dir         = _light_dir,
-            .ambient_intensity = _ambient_light,
-            .near_plane        = get_camera().get_z_near(),
-            .far_plane         = get_camera().get_z_far()
+            .light_dir         = Vec3d { 1.0, 1.0, 1.0 },
+            .ambient_intensity = 0.4,
         };
 
         for (const auto& [material_id, tri] : tile.material_batches)
@@ -887,7 +980,7 @@ namespace gfx
                 const Vec2d uv { uv_interp(triangle, w) };
 
                 const Color4 color {
-                    texture ? texture->sample(uv, _texture_filtering_mode) : color_interp(triangle, w)
+                    texture ? texture->sample(uv, settings.texture_filtering_mode) : color_interp(triangle, w)
                 };
 
                 const FragmentShader::Input frag_in {
@@ -899,7 +992,13 @@ namespace gfx
 
                 const Color4 out { frag_shader->frag(frag_in, uniforms) };
 
-                _surface->write_pixel(static_cast<Vec2i>(pixel_pos), out, depth, RenderSurface::BlendMode::ALPHA);
+                render_surface.write_pixel(
+                    _viewport.offset,
+                    static_cast<Vec2i>(pixel_pos),
+                    out,
+                    depth,
+                    RenderSurface::BlendMode::ALPHA
+                );
             }
         }
 
@@ -918,23 +1017,31 @@ namespace gfx
                             },
                             .depth  = tile.depth_buffer[i],
                             .normal = Vec3d { 0.0, 0.0, 1.0 },
-                            .color  = _surface->read_pixel(pixel_pos)
+                            .color  = render_surface.read_pixel(_viewport.offset, pixel_pos)
                         },
                         uniforms
                     )
                 };
 
-                _surface->write_pixel(pixel_pos, color, tile.depth_buffer[i], RenderSurface::BlendMode::ALPHA);
+                render_surface.write_pixel(
+                    _viewport.offset,
+                    pixel_pos,
+                    color,
+                    tile.depth_buffer[i],
+                    RenderSurface::BlendMode::ALPHA
+                );
             }
         }
     }
 
-    int Render3D::clip_against_near_plane(std::array<ClipTriangle, 2>& clip_triangles)
+    template <typename VectorType>
+    int RenderLayer<VectorType>::clip_against_near_plane(std::array<ClipTriangle, 2>& clip_triangles) requires
+        std::same_as<VectorType, Vec3d>
     {
         constexpr double NEAR_PLANE = 0.0;
         const ClipTriangle& tri = clip_triangles[0];
 
-        const std::array inside { tri.v0.xyz.z >= NEAR_PLANE, tri.v1.xyz.z >= NEAR_PLANE, tri.v2.xyz.z >= NEAR_PLANE };
+        const std::array inside { tri.v0.pos.z >= NEAR_PLANE, tri.v1.pos.z >= NEAR_PLANE, tri.v2.pos.z >= NEAR_PLANE };
 
         const int num_inside { (inside[0] ? 1 : 0) + (inside[1] ? 1 : 0) + (inside[2] ? 1 : 0) };
 
@@ -949,11 +1056,11 @@ namespace gfx
 
         const auto intersect {
             [&](const ClipVertex& vert_in, const ClipVertex& vert_out) -> ClipVertex {
-                const double t = (NEAR_PLANE - vert_in.xyz.z) / (vert_out.xyz.z - vert_in.xyz.z);
+                const double t = (NEAR_PLANE - vert_in.pos.z) / (vert_out.pos.z - vert_in.pos.z);
 
                 const Vec3d intersect_pos {
-                    vert_in.xyz.x + (vert_out.xyz.x - vert_in.xyz.x) * t,
-                    vert_in.xyz.y + (vert_out.xyz.y - vert_in.xyz.y) * t,
+                    vert_in.pos.x + (vert_out.pos.x - vert_in.pos.x) * t,
+                    vert_in.pos.y + (vert_out.pos.y - vert_in.pos.y) * t,
                     NEAR_PLANE
                 };
                 const Vec3d intersect_normal {
@@ -973,7 +1080,7 @@ namespace gfx
                 };
 
                 return ClipVertex {
-                    .xyz    = intersect_pos,
+                    .pos    = intersect_pos,
                     .w      = vert_in.w + (vert_out.w - vert_in.w) * t,
                     .uv     = intersect_uv,
                     .normal = intersect_normal,
@@ -1027,10 +1134,11 @@ namespace gfx
         return 0;
     }
 
-    VertexShader::Output Render3D::default_vertex_shader(
-        const VertexShader::Input& input,
-        const VertexShader::Uniforms& uniforms
-    )
+    template <typename VectorType>
+    VertexShader<VectorType>::Output RenderLayer<VectorType>::default_vertex_shader(
+        const typename VertexShader<VectorType>::Input& input,
+        const typename VertexShader<VectorType>::Uniforms& uniforms
+    ) const
     {
         const Matrix4x1d pos_h { { input.pos.x }, { input.pos.y }, { input.pos.z }, { 1.0 } };
 
@@ -1039,8 +1147,8 @@ namespace gfx
         const Matrix4x1d pos_clip = uniforms.mvp_matrix * pos_h;
         const Matrix4x1d normal_clip = uniforms.model_matrix * normal_h;
 
-        return VertexShader::Output {
-            .xyz    = { pos_clip(0, 0), pos_clip(1, 0), pos_clip(2, 0) },
+        return typename VertexShader<VectorType>::Output {
+            .pos    = { pos_clip(0, 0), pos_clip(1, 0), pos_clip(2, 0) },
             .w      = pos_clip(3, 0),
             .normal = { normal_clip(0, 0), normal_clip(1, 0), normal_clip(2, 0) }
         };

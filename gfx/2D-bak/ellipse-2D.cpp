@@ -1,4 +1,4 @@
-#include "gfx/primitives/ellipse-2D.h"
+#include "ellipse-2D.h"
 
 #include "gfx/geometry/transform-2D.h"
 
