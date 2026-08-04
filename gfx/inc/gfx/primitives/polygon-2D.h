@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gfx/core/primitive-2D.h"
-#include "../inc/gfx/geometry/types/polygon.h"
+#include "../geometry/types/polygon.h"
 #include "gfx/math/box2.h"
 #include "gfx/math/matrix.h"
 #include "gfx/math/vec2.h"

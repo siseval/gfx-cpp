@@ -1,4 +1,4 @@
-#include "font-ttf.h"
+#include "../../inc/gfx/text/font-ttf.h"
 #include "gfx/geometry/flatten.h"
 
 namespace gfx

@@ -595,8 +595,7 @@ namespace demos
         poll_held_keys(dt);
         update_camera(dt);
 
-        surface->clear_frame_buffer();
-        surface->clear_screen();
+        surface->clean();
         renderer->draw_frame(*surface, view, projection);
         surface->present();
     }
@@ -727,7 +726,7 @@ namespace demos
                 camera_velocity += Vec3d { 0, 1, 0 } * camera_acceleration * dt;
                 break;
             }
-        case Key::CTRL:
+        case Key::SHIFT:
             {
                 camera_velocity -= Vec3d { 0, 1, 0 } * camera_acceleration * dt;
                 break;
