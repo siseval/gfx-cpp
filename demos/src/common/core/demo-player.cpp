@@ -45,11 +45,11 @@ namespace demos
 
         while (running)
         {
-            if (screen_size_changed())
-            {
-                resize(get_screen_size());
-                demos[current_demo]->init();
-            }
+            // if (screen_size_changed())
+            // {
+            //     resize(get_screen_size());
+            //     demos[current_demo]->init();
+            // }
 
             const double now_us { time_us() };
             const double dt_sec { (now_us - last_frame_timestamp_us) / 1000000.0 };
@@ -77,7 +77,6 @@ namespace demos
         surface->set_resolution(new_resolution);
         // surface->resize(new_resolution);
         _previous_screen_size = new_resolution;
-        demos[current_demo]->init();
     }
 
     void DemoPlayer::cycle_demo(const int direction)

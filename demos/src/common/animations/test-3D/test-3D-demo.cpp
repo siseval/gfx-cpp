@@ -401,7 +401,9 @@ namespace demos
 
         scene_graph->clear();
 
-        viewport.size = res480;
+        renderer->get_viewport().size = res360;
+        surface->set_resolution(res360);
+        
         surface->set_clear_color(Color4(0.0, 0.0, 0.0));
 
         renderer->settings.texture_filtering_mode = Texture::FilteringMode::NEAREST;

@@ -443,7 +443,7 @@ namespace demos
         const Vec2i res2160 { 3840, 2160 };
 
         renderer->get_viewport().size = res360;
-        surface->set_resolution(res1080);
+        surface->set_resolution(res360);
 
         const std::string assets_dir { "/home/sisev/projects/code/cpp/sigfx/assets/models/ImageToStl/" };
 

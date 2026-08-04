@@ -172,7 +172,6 @@ namespace gfx
         mutable std::vector<Tile> _tiles;
     };
 
-
     template <typename VectorType>
     RenderLayer<VectorType>::RenderLayer(const Viewport& viewport)
         : _viewport(viewport)

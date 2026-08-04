@@ -95,7 +95,7 @@ namespace gfx
         erase();
     }
 
-    void CursesRenderSurface::resize(const Vec2i new_resolution)
+    void CursesRenderSurface::resize_window(const Vec2i new_resolution)
     {
         _resolution = new_resolution;
         _frame_buffer.resize(_resolution.x * _resolution.y, 0);

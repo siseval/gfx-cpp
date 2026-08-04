@@ -79,11 +79,8 @@ namespace gfx
 
     void RenderSurface::clear_frame_buffer()
     {
-        for (size_t i = 0; i < _frame_buffer.size(); ++i)
-        {
-            _frame_buffer.data()[i] = std::byteswap(_clear_color.to_i32());
-            _depth_buffer.at(i) = std::numeric_limits<double>::infinity();
-        }
+        std::ranges::fill(_frame_buffer, std::byteswap(_clear_color.to_i32()));
+        std::ranges::fill(_depth_buffer, std::numeric_limits<double>::infinity());
     }
     
     void RenderSurface::clear_frame_buffer(const Viewport& viewport)
@@ -109,6 +106,8 @@ namespace gfx
     void RenderSurface::set_resolution(const Vec2i new_resolution)
     {
         _resolution = new_resolution;
+        _frame_buffer.resize(_resolution.x * _resolution.y, 0);
+        _depth_buffer.resize(_resolution.x * _resolution.y, std::numeric_limits<float>::infinity());
     }
 
     Vec2i RenderSurface::get_resolution() const

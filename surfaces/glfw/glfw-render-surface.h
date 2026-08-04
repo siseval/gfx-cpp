@@ -25,7 +25,7 @@ public:
     void present() override;
     void clear_screen() const override;
 
-    void resize(Vec2i new_resolution) override;
+    void resize_window(Vec2i new_resolution) override;
 
     void print_frame_buffer() const;
 

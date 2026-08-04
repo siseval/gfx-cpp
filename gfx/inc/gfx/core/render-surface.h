@@ -32,7 +32,7 @@ namespace gfx
         void clear_frame_buffer();
         void clear_frame_buffer(const Viewport& viewport);
 
-        virtual void resize(Vec2i new_resolution) = 0;
+        virtual void resize_window(Vec2i new_resolution) = 0;
 
         void set_resolution(Vec2i new_resolution);
         Vec2i get_resolution() const;
