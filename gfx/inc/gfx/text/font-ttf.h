@@ -1,11 +1,12 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "gfx/math/box2.h"
+#include "gfx/geometry/types/aligned-box.h"
 
 namespace gfx
 {

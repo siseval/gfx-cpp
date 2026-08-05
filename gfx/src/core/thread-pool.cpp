@@ -1,4 +1,4 @@
-#include "gfx/core/thread-pool.h"
+#include "../../inc/gfx/core/thread-pool.h"
 
 #include <atomic>
 #include <functional>

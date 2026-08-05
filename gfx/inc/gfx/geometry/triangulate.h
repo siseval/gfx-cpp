@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "gfx/core/triangle-mesh.h"
 #include "gfx/math/vec2.h"
 #include "types/polygon.h"
 #include "types/triangle.h"
@@ -12,7 +13,7 @@ namespace gfx
     {
     public:
 
-        static std::vector<Triangle<double>> triangulate_polygon(const Polygon<double>& polygon);
+        static TriangleMesh<Vec2d> triangulate_polygon(const Polygon<double>& polygon);
 
     private:
 

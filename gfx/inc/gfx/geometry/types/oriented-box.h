@@ -4,6 +4,7 @@
 #include <array>
 
 #include "gfx/math/vec2.h"
+#include "gfx/math/vec3.h"
 
 namespace gfx
 {
@@ -12,7 +13,7 @@ namespace gfx
     {
     public:
 
-        static constexpr size_t D = std::same_as<VectorType, Vec2d> ? 2 : 3;
+        static constexpr size_t D { VectorType::DIMENSION };
 
         OrientedBox() = default;
 

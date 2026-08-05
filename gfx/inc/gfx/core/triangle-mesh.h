@@ -1,8 +1,8 @@
 #pragma once
 
-#include "gfx/core/types/bounding-ball.h"
+#include "../geometry/types/bounding-ball.h"
 #include "gfx/core/types/color4.h"
-#include "gfx/math/box.h"
+#include "../geometry/types/aligned-box.h"
 #include "gfx/math/vec2.h"
 #include "gfx/math/vec3.h"
 
@@ -17,13 +17,13 @@ namespace gfx
 
         struct Face
         {
+            size_t v0;
             size_t v1;
             size_t v2;
-            size_t v3;
             size_t material_index { 0 };
         };
 
-        Box<VectorType> get_aabb() const;
+        AlignedBox<VectorType> get_aabb() const;
         BoundingBall<VectorType> get_bounding_sphere() const;
 
         void set_vertices(const std::vector<VectorType>& vertices);
@@ -37,6 +37,8 @@ namespace gfx
         const std::vector<Vec2d>& get_uvs() const;
         const std::vector<Color4>& get_colors() const;
         const std::vector<Face>& get_faces() const;
+        
+        void calculate_uvs() requires std::same_as<VectorType, Vec2d>;
 
         size_t num_vertices() const;
 
@@ -46,11 +48,11 @@ namespace gfx
 
         std::vector<VectorType> _vertices;
         std::vector<Vec3d> _normals;
-        std::vector<Vec2d> _uv_coords;
+        std::vector<Vec2d> _uvs;
         std::vector<Color4> _colors;
         std::vector<Face> _faces;
 
-        mutable Box<VectorType> _aabb;
+        mutable AlignedBox<VectorType> _aabb;
         mutable BoundingBall<VectorType> _bounding_ball;
 
         mutable bool _aabb_dirty { true };
@@ -58,7 +60,7 @@ namespace gfx
     };
 
     template <typename VectorType>
-    Box<VectorType> TriangleMesh<VectorType>::get_aabb() const
+    AlignedBox<VectorType> TriangleMesh<VectorType>::get_aabb() const
     {
         if (!_aabb_dirty)
         {
@@ -67,13 +69,13 @@ namespace gfx
 
         if (_vertices.empty())
         {
-            return Box3d {
-                .min = Vec3d { 0, 0, 0 }, 
-                .max = Vec3d { 0, 0, 0 }
+            return AlignedBox<VectorType> {
+                .min = VectorType::zero(),
+                .max = VectorType::zero()
             };
         }
 
-        Box3d extent {
+        AlignedBox<VectorType> extent {
             .min = _vertices[0],
             .max = _vertices[0]
         };
@@ -96,7 +98,7 @@ namespace gfx
             return _bounding_ball;
         }
 
-        const Box<VectorType> aabb { get_aabb() };
+        const AlignedBox<VectorType> aabb { get_aabb() };
         const VectorType center { aabb.min + (aabb.max - aabb.min) * 0.5 };
 
         double radius { 0 };
@@ -132,7 +134,7 @@ namespace gfx
     template <typename VectorType>
     void TriangleMesh<VectorType>::set_uvs(const std::vector<Vec2d>& uvs)
     {
-        _uv_coords = uvs;
+        _uvs = uvs;
     }
 
     template <typename VectorType>
@@ -162,7 +164,7 @@ namespace gfx
     template <typename VectorType>
     const std::vector<Vec2d>& TriangleMesh<VectorType>::get_uvs() const
     {
-        return _uv_coords;
+        return _uvs;
     }
 
     template <typename VectorType>
@@ -178,6 +180,18 @@ namespace gfx
     }
 
     template <typename VectorType>
+    void TriangleMesh<VectorType>::calculate_uvs() requires std::same_as<VectorType, Vec2d>
+    {
+        const AlignedBox<Vec2d> aabb { get_aabb() };
+        
+        _uvs.resize(_vertices.size());
+        for (size_t i = 0; i < _vertices.size(); ++i)
+        {
+            _uvs[i] = aabb.get_sample_coords(_vertices[i]);
+        }
+    }
+
+    template <typename VectorType>
     size_t TriangleMesh<VectorType>::num_vertices() const
     {
         return _vertices.size();
@@ -188,7 +202,7 @@ namespace gfx
     {
         _vertices.clear();
         _normals.clear();
-        _uv_coords.clear();
+        _uvs.clear();
         _colors.clear();
         _faces.clear();
     }

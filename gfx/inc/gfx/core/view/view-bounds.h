@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-#include "gfx/core/types/bounding-ball.h"
+#include "../../geometry/types/bounding-ball.h"
 #include "gfx/geometry/types/frustum.h"
 #include "gfx/geometry/types/oriented-box.h"
 #include "gfx/math/vec2.h"

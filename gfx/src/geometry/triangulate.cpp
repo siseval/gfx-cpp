@@ -1,19 +1,23 @@
 #include "gfx/geometry/triangulate.h"
 
 #include <numeric>
+#include <print>
 
 #include "gfx/geometry/types/triangle.h"
-#include "gfx/math/box2.h"
 
 namespace gfx
 {
     static constexpr int FRACTIONAL_BITS { 8 };
 
-    std::vector<Triangle<double>> Triangulate::triangulate_polygon(const Polygon<double>& polygon)
+    TriangleMesh<Vec2d> Triangulate::triangulate_polygon(const Polygon<double>& polygon)
     {
-        const Polygon<double>::Contour merged_contour = merge_holes(polygon);
+        const Polygon<double>::Contour merged_contour { merge_holes(polygon) };
 
         const std::vector<Vec2d>& floating_point_vertices { merged_contour.vertices };
+        for (auto v : floating_point_vertices)
+        {
+            std::println("{}, {}", v.x, v.y);
+        }
 
         std::vector<Vec2i> fixed_point_vertices;
         fixed_point_vertices.reserve(floating_point_vertices.size());
@@ -27,19 +31,22 @@ namespace gfx
                 }
             );
         }
-
-        std::vector<Triangle<double>> triangles;
+        
         if (fixed_point_vertices.size() < 3)
         {
-            return triangles;
+            return TriangleMesh<Vec2d>();
         }
+        
+        std::vector<Vec2d> vertices { floating_point_vertices };
+        std::vector<TriangleMesh<Vec2d>::Face> faces;
+        faces.reserve(floating_point_vertices.size() - 2);
 
         std::vector<size_t> indices(fixed_point_vertices.size());
         std::iota(indices.begin(), indices.end(), 0);
 
         if (indices.empty())
         {
-            return {};
+            return TriangleMesh<Vec2d>();
         }
 
         while (indices.size() > 3)
@@ -52,9 +59,9 @@ namespace gfx
                 const size_t next_index { indices[i + 1 >= indices.size() ? 0 : i + 1] };
 
                 const Triangle<int> fixed_point_candidate {
-                    fixed_point_vertices[prev_index],
-                    fixed_point_vertices[cur_index],
-                    fixed_point_vertices[next_index]
+                    .v0 = fixed_point_vertices[prev_index],
+                    .v1 = fixed_point_vertices[cur_index],
+                    .v2 = fixed_point_vertices[next_index]
                 };
 
                 if (is_ear(
@@ -67,10 +74,10 @@ namespace gfx
                     merged_contour.clockwise
                 ))
                 {
-                    triangles.emplace_back(
-                        floating_point_vertices[prev_index],
-                        floating_point_vertices[cur_index],
-                        floating_point_vertices[next_index]
+                    faces.emplace_back(
+                        prev_index,
+                        cur_index,
+                        next_index
                     );
 
                     indices.erase(indices.begin() + i);
@@ -84,21 +91,25 @@ namespace gfx
             }
         }
 
-        triangles.emplace_back(
-            floating_point_vertices[indices[0]],
-            floating_point_vertices[indices[1]],
-            floating_point_vertices[indices[2]]
+        faces.emplace_back(
+            indices[0],
+            indices[1],
+            indices[2]
         );
+        
+        TriangleMesh<Vec2d> mesh;
+        mesh.set_vertices(std::move(vertices));
+        mesh.set_faces(std::move(faces));
 
-        return triangles;
+        return mesh;
     }
 
     bool Triangulate::is_convex(const Triangle<int>& triangle, const bool clockwise)
     {
-        const Vec2d ab { triangle.v1 - triangle.v0 };
-        const Vec2d ac { triangle.v2 - triangle.v0 };
+        const Vec2i ab { triangle.v1 - triangle.v0 };
+        const Vec2i ac { triangle.v2 - triangle.v0 };
 
-        const double cross { Vec2d::cross(ab, ac) };
+        const int cross { Vec2i::cross(ab, ac) };
         return clockwise ? cross > 0 : cross < 0;
     }
 
@@ -186,7 +197,11 @@ namespace gfx
                 continue;
             }
 
-            Box2i bounds { triangle.v0, triangle.v0 };
+            AlignedBox<Vec2i> bounds {
+                .min = triangle.v0, 
+                .max = triangle.v0
+            };
+            
             for (auto v : { triangle.v1, triangle.v2 })
             {
                 bounds.expand(v);

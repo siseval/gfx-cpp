@@ -12,7 +12,7 @@ namespace gfx
         Matrix3x3d projection { Matrix3x3d::zero() };
 
         projection(0, 0) = 1.0 / (_zoom * aspect_ratio);
-        projection(1, 1) = -1.0 / _zoom;
+        projection(1, 1) = 1.0 / _zoom;
         projection(2, 2) = 1.0;
 
         return projection;
@@ -33,8 +33,8 @@ namespace gfx
         const double aspect_ratio { viewport.get_aspect_ratio() };
         const double rotation { view.get_rotation() };
 
-        const double half_width { _zoom * aspect_ratio };
-        const double half_height { _zoom };
+        const double width { _zoom * aspect_ratio };
+        const double height { _zoom };
 
         const double cos_r { std::cos(rotation) };
         const double sin_r { std::sin(rotation) };
@@ -42,10 +42,10 @@ namespace gfx
         const Vec2d axis_x { cos_r, sin_r };
         const Vec2d axis_y { -sin_r, cos_r };
 
-        const Vec2d side_x { axis_x * (2.0 * half_width) };
-        const Vec2d side_y { axis_y * (2.0 * half_height) };
+        const Vec2d side_x { axis_x * width };
+        const Vec2d side_y { axis_y * height };
 
-        const Vec2d origin { view.get_position() };
+        const Vec2d origin { view.get_position() - Vec2d { width, height } / 2 };
 
         return ViewBounds<Vec2d>(OrientedBox<Vec2d> { origin, side_x, side_y });
     }

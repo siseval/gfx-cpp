@@ -7,7 +7,9 @@
 
 #include <map>
 
+#include "gfx/primitives/text-2D.h"
 #include "gfx/projections/perspective-projection.h"
+#include "gfx/text/font-manager-ttf.h"
 
 namespace demos
 {
@@ -40,6 +42,10 @@ namespace demos
         void camera_movement(Key key, double dt);
         void poll_held_keys(double dt);
 
+        std::shared_ptr<gfx::FontManagerTTF> font_manager;
+        std::shared_ptr<gfx::RenderLayer<gfx::Vec2d>> render2D;
+        std::shared_ptr<gfx::Text2D> text_item;
+        
         std::vector<std::shared_ptr<gfx::Primitive<gfx::Vec3d>>> scene_items;
 
         // std::shared_ptr<gfx::Ellipse2D> crosshair;

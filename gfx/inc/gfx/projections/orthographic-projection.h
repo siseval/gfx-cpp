@@ -21,6 +21,6 @@ namespace gfx
 
     private:
 
-        double _zoom;
+        double _zoom { 1.0 };
     };
 }
