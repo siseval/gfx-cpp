@@ -3,9 +3,10 @@
 #include "gfx/core/material/material.h"
 #include "gfx/core/material/vertex-shader.h"
 #include "transform.h"
-#include "gfx/core/types/triangle-mesh.h"
+#include "triangle-mesh.h"
 #include "gfx/core/types/uuid.h"
-#include "gfx/math/box.h"
+#include "../geometry/types/aligned-box.h"
+#include "gfx/geometry/types/oriented-box.h"
 
 namespace gfx
 {
@@ -38,14 +39,14 @@ namespace gfx
         Color4 get_color() const;
         VectorType get_anchor() const;
         std::shared_ptr<Material> get_material(size_t slot = 0) const;
-        std::vector<std::shared_ptr<Material>> get_materials() const;
+        const std::vector<std::shared_ptr<Material>>& get_materials() const;
         std::shared_ptr<VertexShader<VectorType>> get_vertex_shader() const;
 
-        virtual Box<VectorType> get_aabb() const;
-        virtual BoundingBall<VectorType> get_bounding_sphere() const;
+        AlignedBox<VectorType> get_aabb() const;
+        BoundingBall<VectorType> get_bounding_sphere() const;
 
         UUID get_id() const;
-        Transform<VectorType> get_transform() const;
+        const Transform<VectorType>& get_transform() const;
         int64_t get_transform_generation() const;
 
 
@@ -55,6 +56,9 @@ namespace gfx
         void set_scale(double x, double y) requires std::same_as<VectorType, Vec2d>;
         void set_rotation_degrees(double angle) requires std::same_as<RotationType, double>;
         void set_anchor(double x, double y) requires std::same_as<VectorType, Vec2d>;
+        void set_depth(double depth) requires std::same_as<VectorType, Vec2d>;
+
+        double get_depth() const requires std::same_as<VectorType, Vec2d>;
 
 
         /* 3D Specific helpers */
@@ -69,7 +73,7 @@ namespace gfx
     protected:
 
         virtual void generate_mesh() const = 0;
-        
+
         void set_mesh_dirty(bool dirty) const;
         void set_transform_dirty(bool dirty) const;
 
@@ -86,10 +90,12 @@ namespace gfx
 
         Color4 _color;
 
-        VectorType _position { VectorType::zero() };
-        RotationType _rotation { RotationType::zero() };
+        VectorType _position;
+        RotationType _rotation;
         VectorType _scale { VectorType::one() };
-        VectorType _anchor { VectorType::zero() };
+        VectorType _anchor;
+
+        double _depth { 0 };
 
         mutable TriangleMesh<VectorType> _mesh_data;
         mutable Transform<VectorType> _cached_transform;
@@ -103,7 +109,7 @@ namespace gfx
     template <typename VectorType>
     Primitive<VectorType>::Primitive()
         : _id(UUID::generate()) {}
-    
+
     template <typename VectorType>
     const TriangleMesh<VectorType>& Primitive<VectorType>::get_mesh() const
     {
@@ -111,7 +117,7 @@ namespace gfx
         {
             generate_mesh();
         }
-        
+
         return _mesh_data;
     }
 
@@ -185,7 +191,7 @@ namespace gfx
     {
         return _rotation;
     }
-    
+
     template <typename VectorType>
     Primitive<VectorType>::RotationType Primitive<VectorType>::get_rotation_degrees() const
     {
@@ -215,7 +221,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    std::vector<std::shared_ptr<Material>> Primitive<VectorType>::get_materials() const
+    const std::vector<std::shared_ptr<Material>>& Primitive<VectorType>::get_materials() const
     {
         return _materials;
     }
@@ -227,13 +233,13 @@ namespace gfx
     }
 
     template <typename VectorType>
-    Box<VectorType> Primitive<VectorType>::get_aabb() const
+    AlignedBox<VectorType> Primitive<VectorType>::get_aabb() const
     {
         if (_mesh_dirty)
         {
             generate_mesh();
-        } 
-        
+        }
+
         return _mesh_data.get_aabb();
     }
 
@@ -244,7 +250,7 @@ namespace gfx
         {
             generate_mesh();
         }
-        
+
         return _mesh_data.get_bounding_sphere();
     }
 
@@ -255,7 +261,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    Transform<VectorType> Primitive<VectorType>::get_transform() const
+    const Transform<VectorType>& Primitive<VectorType>::get_transform() const
     {
         if (!_transform_dirty)
         {
@@ -264,7 +270,7 @@ namespace gfx
 
         const VectorType anchor_offset { get_anchor() * get_aabb().size() };
 
-        _cached_transform.set_transform(_position - anchor_offset, _rotation, _scale);
+        _cached_transform.set_transform(_position, _rotation, _scale, anchor_offset);
 
         _transform_dirty = false;
 
@@ -303,6 +309,18 @@ namespace gfx
     {
         _anchor = Vec2d { x, y };
         transform_updated();
+    }
+
+    template <typename VectorType>
+    void Primitive<VectorType>::set_depth(const double depth) requires std::same_as<VectorType, Vec2d>
+    {
+        _depth = depth;
+    }
+
+    template <typename VectorType>
+    double Primitive<VectorType>::get_depth() const requires std::same_as<VectorType, Vec2d>
+    {
+        return _depth;
     }
 
     template <typename VectorType>

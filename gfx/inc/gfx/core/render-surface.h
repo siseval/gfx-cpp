@@ -30,7 +30,12 @@ namespace gfx
         virtual void clear_screen() const = 0;
 
         void clear_frame_buffer();
+        void clear_depth_buffer();
+        
         void clear_frame_buffer(const Viewport& viewport);
+        void clear_depth_buffer(const Viewport& viewport);
+        
+        void clean();
 
         virtual void resize_window(Vec2i new_resolution) = 0;
 

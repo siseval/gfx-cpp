@@ -69,7 +69,7 @@ namespace gfx
         std::shared_ptr<SceneNode<VectorType>> _root;
         std::unordered_map<UUID, std::shared_ptr<SceneNode<VectorType>>> _nodes;
     };
-    
+
     template <typename VectorType>
     SceneGraph<VectorType>::SceneGraph()
         : _root(std::make_shared<SceneNode<VectorType>>(nullptr))
@@ -257,12 +257,14 @@ namespace gfx
 
         for (const auto& node : _nodes | std::views::values)
         {
-            if (node->primitive != nullptr)
+            auto& primitive { node->primitive };
+            if (primitive != nullptr)
             {
                 BoundingBall<VectorType> transformed_sphere {
-                    node->primitive->get_bounding_sphere().transformed(
-                        node->primitive->get_position(),
-                        node->primitive->get_scale()
+                    primitive->get_bounding_sphere().transformed(
+                        primitive->get_position(),
+                        primitive->get_scale(),
+                        primitive->get_anchor() * primitive->get_aabb().size()
                     )
                 };
 
@@ -271,7 +273,7 @@ namespace gfx
                     continue;
                 }
 
-                _draw_queue.push_back({ node->primitive, get_global_transform(node->primitive) });
+                _draw_queue.push_back({ primitive, get_global_transform(primitive) });
             }
         }
 

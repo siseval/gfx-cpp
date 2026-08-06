@@ -9,6 +9,8 @@ namespace gfx
     template <typename T>
     struct Vec2
     {
+        static constexpr size_t DIMENSION { 2 };
+        
         T x;
         T y;
 
@@ -169,6 +171,11 @@ namespace gfx
         {
             return std::sqrt(x * x + y * y);
         }
+        
+        Vec2 abs() const
+        {
+            return { std::abs(x), std::abs(y) };
+        }
 
         Vec2<int> round_to_int() const
         {
@@ -183,6 +190,16 @@ namespace gfx
         T max_element() const
         {
             return std::max(x, y);
+        }
+        
+        bool is_all_smaller_than(const Vec2& v) const
+        {
+            return x < v.x && y < v.y;
+        }
+        
+        bool is_all_larger_than(const Vec2& v) const
+        {
+            return x > v.x && y > v.y;
         }
 
         static Vec2<int> floor(const Vec2& v)

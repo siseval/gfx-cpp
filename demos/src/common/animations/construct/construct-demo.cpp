@@ -7,6 +7,9 @@
 #include <vector>
 
 #include "common/core/demo-utils.h"
+#include "gfx/projections/orthographic-projection.h"
+#include "gfx/projections/viewport-projection.h"
+#include "gfx/shaders/default-fragment-shader.h"
 #include "gfx/shaders/diffuse-fragment-shader.h"
 
 using namespace gfx;
@@ -31,7 +34,7 @@ namespace demos
         {
             return (std::hash<int>()(k.v) ^
                     std::hash<int>()(k.vt) << 1) >> 1 ^
-                std::hash<int>()(k.vn) << 1;
+                   std::hash<int>()(k.vn) << 1;
         }
     };
 
@@ -166,12 +169,14 @@ namespace demos
 
                 for (size_t i = 1; i + 1 < indices.size(); ++i)
                 {
-                    faces.push_back({
-                        indices[0],
-                        indices[i + 1],
-                        indices[i],
-                        current_material
-                    });
+                    faces.push_back(
+                        {
+                            indices[0],
+                            indices[i + 1],
+                            indices[i],
+                            current_material
+                        }
+                    );
                 }
             }
             else if (type == "usemtl")
@@ -395,12 +400,15 @@ namespace demos
 
                 if (count > 0)
                 {
-                    target.set_pixel({ x, y }, Color4 {
-                                         static_cast<uint8_t>(r / count),
-                                         static_cast<uint8_t>(g / count),
-                                         static_cast<uint8_t>(b / count),
-                                         static_cast<uint8_t>(a / count)
-                                     });
+                    target.set_pixel(
+                        { x, y },
+                        Color4 {
+                            static_cast<uint8_t>(r / count),
+                            static_cast<uint8_t>(g / count),
+                            static_cast<uint8_t>(b / count),
+                            static_cast<uint8_t>(a / count)
+                        }
+                    );
                 }
             }
         }
@@ -420,10 +428,34 @@ namespace demos
 
     void ConstructDemo::init()
     {
+        render2D = std::make_shared<RenderLayer<Vec2d>>(renderer->get_viewport());
+        font_manager = std::make_shared<FontManagerTTF>();
+
+        font_manager->load_font_directory("/home/sisev/projects/code/cpp/sigfx/assets/fonts");
+
+        auto font = font_manager->get_font("eva-classic");
+
+        auto material { std::make_shared<Material>(std::make_shared<DefaultFragmentShader>()) };
+        auto res { render2D->get_viewport().size };
+
+        text_item = std::make_shared<Text2D>();
+        text_item->set_text("TEST");
+        text_item->set_font(font);
+        text_item->set_font_size(25);
+        text_item->set_position(2.0, 2.0);
+        text_item->set_alignment(Text2D::TextAlignment::LEFT);
+        text_item->set_color(Color4::white());
+        // text_item->set_scale(0.01, 0.01);
+        // text_item->set_anchor(0.5, 0.5);
+        text_item->set_depth(-2.0);
+        text_item->set_material(material);
+        
+        // render2D->get_scene_graph()->add_item(text_item);
+
         auto scene_graph { renderer->get_scene_graph() };
-        
+
         surface->set_clear_color(Color4(0.7, 0.7, 0.9, 1.0));
-        
+
         renderer->settings.texture_filtering_mode = Texture::FilteringMode::BILINEAR;
 
         view.set_position(20.0, -85.0, -15.0);
@@ -443,19 +475,25 @@ namespace demos
         const Vec2i res2160 { 3840, 2160 };
 
         renderer->get_viewport().size = res360;
+
+        render2D->get_viewport().size = res360;
         surface->set_resolution(res360);
 
         const std::string assets_dir { "/home/sisev/projects/code/cpp/sigfx/assets/models/ImageToStl/" };
 
         const auto diffuse_shader { std::make_shared<DiffuseFragmentShader>() };
 
-        const auto water_texture { std::make_shared<Texture>(downsample(decode_bmp(assets_dir + "water.bmp"), texture_res)) };
+        const auto water_texture {
+            std::make_shared<Texture>(downsample(decode_bmp(assets_dir + "water.bmp"), texture_res))
+        };
 
         const auto default_material { std::make_shared<Material>(diffuse_shader) };
         const auto water_material { std::make_shared<Material>(diffuse_shader, water_texture) };
 
         std::unordered_map<std::string, size_t> material_map;
-        std::unordered_map<std::string, std::string> mtl_texture_map = load_mtl_texture_map(assets_dir + "gm_construct_in_flatgrass.mtl");
+        std::unordered_map<std::string, std::string> mtl_texture_map = load_mtl_texture_map(
+            assets_dir + "gm_construct_in_flatgrass.mtl"
+        );
 
         const TriangleMesh<Vec3d> map_mesh = load_obj(assets_dir + "gm_construct_in_flatgrass.obj", material_map);
         map = std::make_shared<Polygon3D>();
@@ -469,7 +507,9 @@ namespace demos
                 try
                 {
                     replaceAll(texture_path, ".png", ".bmp");
-                    const auto mat_texture = std::make_shared<Texture>(downsample(decode_bmp(assets_dir + texture_path), texture_res));
+                    const auto mat_texture = std::make_shared<Texture>(
+                        downsample(decode_bmp(assets_dir + texture_path), texture_res)
+                    );
                     map->set_material(std::make_shared<Material>(diffuse_shader, mat_texture), mat_id);
                 }
                 catch (const std::exception& e)
@@ -497,11 +537,25 @@ namespace demos
         poll_held_keys(dt);
         update_camera(dt);
 
-        // debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
+        const double now { time_us() };
+        const double delta_us { now - last_frame_us };
+        last_frame_us = now;
 
-        surface->clear_screen();
-        surface->clear_frame_buffer();
+        const double raw_fps { delta_us > 0.0 ? 1000000.0 / delta_us : 0.0 };
+        smoothed_fps = smoothed_fps * 0.9 + raw_fps * 0.1;
+
+        // debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
+        
+        view2D.set_position((Vec2d)(render2D->get_viewport().size / 2));
+        text_item->set_text("FPS: " + std::to_string(smoothed_fps));
+
+        surface->clean();
         renderer->draw_frame(*surface, view, projection);
+        render2D->draw_frame(
+            *surface,
+            view2D,
+            OrthographicProjection(360)
+        );
         surface->present();
     }
 
@@ -510,9 +564,7 @@ namespace demos
         renderer->get_scene_graph()->clear();
     }
 
-    void ConstructDemo::handle_char(const int input)
-    {
-    }
+    void ConstructDemo::handle_char(const int input) {}
 
     void ConstructDemo::report_key(const KeyEvent event)
     {
@@ -564,6 +616,8 @@ namespace demos
                         view.get_rotation().z
                     }
                 );
+                // text_item->set_position(text_item->get_position() + delta * render2D->get_viewport().size.y);
+                // view2D.set_position(view2D.get_position() + delta * render2D->get_viewport().size.y / 2);
                 prev_mouse_pos = event.position;
                 break;
             }

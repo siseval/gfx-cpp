@@ -9,6 +9,8 @@ namespace gfx
     template <typename T>
     struct Vec3
     {
+        static constexpr size_t DIMENSION { 3 };
+        
         T x;
         T y;
         T z;
@@ -142,10 +144,25 @@ namespace gfx
         {
             return std::max(std::max(x, y), z);
         }
+        
+        bool is_all_smaller_than(const Vec3& v) const
+        {
+            return x < v.x && y < v.y && z < v.z;
+        }
+        
+        bool is_all_larger_than(const Vec3& v) const
+        {
+            return x > v.x && y > v.y && z > v.z;
+        }
 
         double length() const
         {
             return std::sqrt(x * x + y * y + z * z);
+        }
+        
+        Vec3 abs() const
+        {
+            return { std::abs(x), std::abs(y), std::abs(z) };
         }
 
         Vec3<double> normalize() const
