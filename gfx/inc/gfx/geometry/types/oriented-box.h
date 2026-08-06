@@ -9,10 +9,8 @@
 namespace gfx
 {
     template <typename VectorType>
-    class OrientedBox
+    struct OrientedBox
     {
-    public:
-
         static constexpr size_t D { VectorType::DIMENSION };
 
         OrientedBox() = default;
@@ -27,11 +25,10 @@ namespace gfx
         VectorType get_extent() const;
         VectorType get_sample_coords(VectorType point) const;
 
+        VectorType get_origin() const;
         VectorType get_side_x() const;
         VectorType get_side_y() const;
         VectorType get_side_z() const requires (D == 3);
-
-    private:
 
         VectorType origin;
         std::array<VectorType, D> sides;
@@ -128,6 +125,12 @@ namespace gfx
         const double w { VectorType::dot(d, sides[2]) / VectorType::dot(sides[2], sides[2]) };
 
         return VectorType { u, v, w };
+    }
+    
+    template <typename VectorType>
+    VectorType OrientedBox<VectorType>::get_origin() const
+    {
+        return origin;
     }
 
     template <typename VectorType>

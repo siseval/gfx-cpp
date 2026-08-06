@@ -224,6 +224,47 @@ namespace gfx
         }
     }
 
+    inline void draw_circle(
+        Vec2i viewport_offset,
+        Vec2i center,
+        int radius,
+        RenderSurface& surface,
+        Color4 color
+    )
+    {
+        int x = 0;
+        int y = radius;
+        int d = 3 - 2 * radius;
+
+        auto draw_symmetric_points = [&](int cx, int cy, int px, int py) {
+            surface.write_pixel(viewport_offset, Vec2i { cx + px, cy + py }, color);
+            surface.write_pixel(viewport_offset, Vec2i { cx - px, cy + py }, color);
+            surface.write_pixel(viewport_offset, Vec2i { cx + px, cy - py }, color);
+            surface.write_pixel(viewport_offset, Vec2i { cx - px, cy - py }, color);
+            surface.write_pixel(viewport_offset, Vec2i { cx + py, cy + px }, color);
+            surface.write_pixel(viewport_offset, Vec2i { cx - py, cy + px }, color);
+            surface.write_pixel(viewport_offset, Vec2i { cx + py, cy - px }, color);
+            surface.write_pixel(viewport_offset, Vec2i { cx - py, cy - px }, color);
+        };
+
+        while (y >= x)
+        {
+            draw_symmetric_points(center.x, center.y, x, y);
+
+            x++;
+
+            if (d > 0)
+            {
+                y--;
+                d = d + 4 * (x - y) + 10;
+            }
+            else
+            {
+                d = d + 4 * x + 6;
+            }
+        }
+    }
+
     template <typename VectorType>
     RenderLayer<VectorType>::RenderLayer(const Viewport& viewport)
         : _viewport(viewport)
@@ -244,6 +285,29 @@ namespace gfx
         };
 
         const DrawQueue& draw_queue { _scene_graph->get_draw_queue(projection.get_view_bounds(view, _viewport)) };
+
+        if constexpr (std::same_as<VectorType, Vec2d>)
+        {
+            if (draw_queue.size() > 0)
+            {
+                auto item { draw_queue[0].first };
+                auto sphere {
+                    item->get_bounding_sphere().transformed(
+                        item->get_position() - view.get_position(),
+                        Vec2d::one()
+                    )
+                };
+                draw_circle(_viewport.offset, (Vec2i)sphere.center, (int)sphere.radius, render_surface, Color4::blue());
+                
+                auto box { projection.get_view_bounds(view, _viewport).get_bounds() };
+                box.origin = Vec2d::zero();
+                draw_circle(_viewport.offset, (Vec2i)box.origin, 500, render_surface, Color4::blue());
+                // box.origin += Vec2d(100);
+                draw_line(_viewport.offset, (Vec2i)box.get_origin(), (Vec2i)(box.get_origin() + box.get_side_x()), render_surface, Color4::green());
+                draw_line(_viewport.offset, (Vec2i)box.get_origin(), (Vec2i)(box.get_origin() + box.get_side_y()), render_surface, Color4::green());
+            }
+        }
+
         const auto material_map { build_material_map(draw_queue) };
 
         if (settings.multicore_vertex_transformation)

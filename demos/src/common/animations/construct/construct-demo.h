@@ -54,6 +54,7 @@ namespace demos
         gfx::Vec2d prev_mouse_pos { 0.0, 0.0 };
 
         gfx::View<gfx::Vec3d> view;
+        gfx::View<gfx::Vec2d> view2D;
         gfx::PerspectiveProjection projection;
         
         gfx::Vec3d camera_velocity { 0.0, 0.0, 0.0 };

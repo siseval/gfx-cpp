@@ -439,13 +439,14 @@ namespace demos
         auto res { render2D->get_viewport().size };
 
         text_item = std::make_shared<Text2D>();
-        text_item->set_text("OOFMSIGNJKASFJ");
+        text_item->set_text("TEST");
         text_item->set_font(font);
-        text_item->set_font_size(100);
-        text_item->set_position(Vec2d(-400, -100));
+        text_item->set_font_size(40);
+        // text_item->set_position(-Vec2d(300.0, 100.0));
+        text_item->set_alignment(Text2D::TextAlignment::LEFT);
         text_item->set_color(Color4::red());
-        text_item->set_scale(1.0, 1.0);
-        text_item->set_anchor(0.5, 0.5);
+        // text_item->set_scale(1.0, 1.0);
+        // text_item->set_anchor(0.5, 0.5);
         text_item->set_depth(-2.0);
         text_item->set_material(material);
 
@@ -474,7 +475,7 @@ namespace demos
         const Vec2i res2160 { 3840, 2160 };
 
         renderer->get_viewport().size = res360;
-        
+
         render2D->get_viewport().size = res360;
         surface->set_resolution(res360);
 
@@ -536,11 +537,19 @@ namespace demos
         poll_held_keys(dt);
         update_camera(dt);
 
+        double now { time_ms() };
+
+        last_frame_ms = time_ms();
+
         // debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
 
         surface->clean();
         renderer->draw_frame(*surface, view, projection);
-        render2D->draw_frame(*surface, View<Vec2d>(Vec2d::zero(), 0.0), OrthographicProjection(360));
+        render2D->draw_frame(
+            *surface,
+            view2D,
+            OrthographicProjection(360)
+        );
         surface->present();
     }
 
@@ -601,7 +610,8 @@ namespace demos
                         view.get_rotation().z
                     }
                 );
-                text_item->set_position(text_item->get_position() + delta);
+                text_item->set_position(text_item->get_position() + delta * render2D->get_viewport().size.y);
+                view2D.set_position(view2D.get_position() + delta * render2D->get_viewport().size.y / 2);
                 prev_mouse_pos = event.position;
                 break;
             }

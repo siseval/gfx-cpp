@@ -9,13 +9,13 @@ namespace gfx
 
     Matrix3x3d OrthographicProjection::get_matrix(const double aspect_ratio) const
     {
-        Matrix3x3d projection { Matrix3x3d::zero() };
+        Matrix3x3d matrix { Matrix3x3d::zero() };
 
-        projection(0, 0) = 1.0 / (_zoom * aspect_ratio);
-        projection(1, 1) = 1.0 / _zoom;
-        projection(2, 2) = 1.0;
+        matrix(0, 0) = 1.0 / (_zoom * aspect_ratio);
+        matrix(1, 1) = 1.0 / _zoom;
+        matrix(2, 2) = 1.0;
 
-        return projection;
+        return matrix;
     }
 
     void OrthographicProjection::set_zoom(const double zoom)
