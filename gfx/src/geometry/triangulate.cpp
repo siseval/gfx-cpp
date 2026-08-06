@@ -12,12 +12,7 @@ namespace gfx
     TriangleMesh<Vec2d> Triangulate::triangulate_polygon(const Polygon<double>& polygon)
     {
         const Polygon<double>::Contour merged_contour { merge_holes(polygon) };
-
         const std::vector<Vec2d>& floating_point_vertices { merged_contour.vertices };
-        for (auto v : floating_point_vertices)
-        {
-            std::println("{}, {}", v.x, v.y);
-        }
 
         std::vector<Vec2i> fixed_point_vertices;
         fixed_point_vertices.reserve(floating_point_vertices.size());

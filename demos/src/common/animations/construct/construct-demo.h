@@ -62,7 +62,7 @@ namespace demos
         double camera_damping = 0.85;
         double max_camera_speed = 300.0;
 
-        double last_frame_ms = 0.0;
+        double smoothed_fps { 0.0 };
 
         std::map<Key, bool> key_states {
             { Key::W, false },

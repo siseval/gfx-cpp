@@ -20,8 +20,12 @@ namespace gfx
 
         struct Settings
         {
-            bool multicore_vertex_transformation { true };
-            bool multicore_rasterization { true };
+            bool multicore_vertex_transformation { false };
+            bool multicore_rasterization { false };
+
+            bool draw_wireframes { false };
+            Color4 wireframe_color { Color4::white() };
+
             Texture::FilteringMode texture_filtering_mode { Texture::FilteringMode::NEAREST };
         };
 
@@ -43,6 +47,26 @@ namespace gfx
         void add_fullscreen_shader(std::shared_ptr<FragmentShader> shader);
         void remove_fullscreen_shader(std::shared_ptr<FragmentShader> shader);
         void clear_fullscreen_shaders();
+
+        /* Immediate mode drawing */
+
+        void draw_line(
+            Vec2d a,
+            Vec2d b,
+            RenderSurface& surface,
+            Color4 color = Color4::white(),
+            double depth = 0.0
+        ) const;
+
+
+        void draw_circle(
+            Vec2d center,
+            double radius,
+            RenderSurface& surface,
+            Color4 color,
+            double depth
+        ) const;
+
 
         Settings settings;
 
@@ -152,6 +176,14 @@ namespace gfx
 
         static void rasterize_triangle_in_tile(const ScreenTriangle& triangle, int tri_index, Tile& tile);
 
+
+        VertexShader<VectorType>::Output default_vertex_shader(
+            const VertexShader<VectorType>::Input& input,
+            const VertexShader<VectorType>::Uniforms& uniforms
+        ) const;
+
+        void draw_wireframes(RenderSurface& render_surface) const;
+
         /* 3D specific culling */
 
         static int clip_against_near_plane(std::array<ClipTriangle, 2>& clip_triangles) requires std::same_as<
@@ -160,11 +192,6 @@ namespace gfx
         static bool is_backface(const ScreenVertex& v0, const ScreenVertex& v1, const ScreenVertex& v2) requires
             std::same_as<VectorType, Vec3d>;
 
-
-        VertexShader<VectorType>::Output default_vertex_shader(
-            const VertexShader<VectorType>::Input& input,
-            const VertexShader<VectorType>::Uniforms& uniforms
-        ) const;
 
         Viewport _viewport;
 
@@ -177,93 +204,6 @@ namespace gfx
         mutable Vec2i _last_resolution { 0, 0 };
         mutable std::vector<Tile> _tiles;
     };
-
-    inline void draw_line(
-        Vec2i viewport_offset,
-        Vec2i a,
-        Vec2i b,
-        RenderSurface& surface,
-        Color4 color
-    )
-    {
-        int x0 = a.x;
-        int y0 = a.y;
-        int x1 = b.x;
-        int y1 = b.y;
-
-        int dx = std::abs(x1 - x0);
-        int dy = std::abs(y1 - y0);
-
-        int sx = (x0 < x1) ? 1 : -1;
-        int sy = (y0 < y1) ? 1 : -1;
-
-        int err = dx - dy;
-
-        while (true)
-        {
-            surface.write_pixel(viewport_offset, Vec2i { x0, y0 }, color);
-
-            if (x0 == x1 && y0 == y1)
-            {
-                break;
-            }
-
-            int e2 = 2 * err;
-
-            if (e2 > -dy)
-            {
-                err -= dy;
-                x0 += sx;
-            }
-
-            if (e2 < dx)
-            {
-                err += dx;
-                y0 += sy;
-            }
-        }
-    }
-
-    inline void draw_circle(
-        Vec2i viewport_offset,
-        Vec2i center,
-        int radius,
-        RenderSurface& surface,
-        Color4 color
-    )
-    {
-        int x = 0;
-        int y = radius;
-        int d = 3 - 2 * radius;
-
-        auto draw_symmetric_points = [&](int cx, int cy, int px, int py) {
-            surface.write_pixel(viewport_offset, Vec2i { cx + px, cy + py }, color);
-            surface.write_pixel(viewport_offset, Vec2i { cx - px, cy + py }, color);
-            surface.write_pixel(viewport_offset, Vec2i { cx + px, cy - py }, color);
-            surface.write_pixel(viewport_offset, Vec2i { cx - px, cy - py }, color);
-            surface.write_pixel(viewport_offset, Vec2i { cx + py, cy + px }, color);
-            surface.write_pixel(viewport_offset, Vec2i { cx - py, cy + px }, color);
-            surface.write_pixel(viewport_offset, Vec2i { cx + py, cy - px }, color);
-            surface.write_pixel(viewport_offset, Vec2i { cx - py, cy - px }, color);
-        };
-
-        while (y >= x)
-        {
-            draw_symmetric_points(center.x, center.y, x, y);
-
-            x++;
-
-            if (d > 0)
-            {
-                y--;
-                d = d + 4 * (x - y) + 10;
-            }
-            else
-            {
-                d = d + 4 * x + 6;
-            }
-        }
-    }
 
     template <typename VectorType>
     RenderLayer<VectorType>::RenderLayer(const Viewport& viewport)
@@ -285,28 +225,6 @@ namespace gfx
         };
 
         const DrawQueue& draw_queue { _scene_graph->get_draw_queue(projection.get_view_bounds(view, _viewport)) };
-
-        if constexpr (std::same_as<VectorType, Vec2d>)
-        {
-            if (draw_queue.size() > 0)
-            {
-                auto item { draw_queue[0].first };
-                auto sphere {
-                    item->get_bounding_sphere().transformed(
-                        item->get_position() - view.get_position(),
-                        Vec2d::one()
-                    )
-                };
-                draw_circle(_viewport.offset, (Vec2i)sphere.center, (int)sphere.radius, render_surface, Color4::blue());
-                
-                auto box { projection.get_view_bounds(view, _viewport).get_bounds() };
-                box.origin = Vec2d::zero();
-                draw_circle(_viewport.offset, (Vec2i)box.origin, 500, render_surface, Color4::blue());
-                // box.origin += Vec2d(100);
-                draw_line(_viewport.offset, (Vec2i)box.get_origin(), (Vec2i)(box.get_origin() + box.get_side_x()), render_surface, Color4::green());
-                draw_line(_viewport.offset, (Vec2i)box.get_origin(), (Vec2i)(box.get_origin() + box.get_side_y()), render_surface, Color4::green());
-            }
-        }
 
         const auto material_map { build_material_map(draw_queue) };
 
@@ -337,6 +255,11 @@ namespace gfx
             {
                 render_tile(tile, render_surface, material_map, t);
             }
+        }
+        
+        if (settings.draw_wireframes)
+        {
+            draw_wireframes(render_surface);
         }
     }
 
@@ -642,6 +565,95 @@ namespace gfx
                 }
             }
         );
+    }
+
+    template <typename VectorType>
+    void RenderLayer<VectorType>::draw_line(
+        const Vec2d a,
+        const Vec2d b,
+        RenderSurface& surface,
+        const Color4 color,
+        const double depth
+    ) const
+    {
+        int x0 = a.x;
+        int y0 = a.y;
+        const int x1 = b.x;
+        const int y1 = b.y;
+
+        const int dx = std::abs(x1 - x0);
+        const int dy = std::abs(y1 - y0);
+
+        const int sx = x0 < x1 ? 1 : -1;
+        const int sy = y0 < y1 ? 1 : -1;
+
+        int err = dx - dy;
+
+        while (true)
+        {
+            surface.write_pixel(_viewport.offset, Vec2i { x0, y0 }, color, depth);
+
+            if (x0 == x1 && y0 == y1)
+            {
+                break;
+            }
+
+            const int e2 = 2 * err;
+
+            if (e2 > -dy)
+            {
+                err -= dy;
+                x0 += sx;
+            }
+
+            if (e2 < dx)
+            {
+                err += dx;
+                y0 += sy;
+            }
+        }
+    }
+
+    template <typename VectorType>
+    void RenderLayer<VectorType>::draw_circle(
+        const Vec2d center,
+        const double radius,
+        RenderSurface& surface,
+        const Color4 color,
+        const double depth
+    ) const
+    {
+        int x = 0;
+        int y = radius;
+        int d = 3 - 2 * radius;
+
+        auto draw_symmetric_points = [&](const int cx, const int cy, const int px, const int py) {
+            surface.write_pixel(_viewport.offset, Vec2i { cx + px, cy + py }, color, depth);
+            surface.write_pixel(_viewport.offset, Vec2i { cx - px, cy + py }, color, depth);
+            surface.write_pixel(_viewport.offset, Vec2i { cx + px, cy - py }, color, depth);
+            surface.write_pixel(_viewport.offset, Vec2i { cx - px, cy - py }, color, depth);
+            surface.write_pixel(_viewport.offset, Vec2i { cx + py, cy + px }, color, depth);
+            surface.write_pixel(_viewport.offset, Vec2i { cx - py, cy + px }, color, depth);
+            surface.write_pixel(_viewport.offset, Vec2i { cx + py, cy - px }, color, depth);
+            surface.write_pixel(_viewport.offset, Vec2i { cx - py, cy - px }, color, depth);
+        };
+
+        while (y >= x)
+        {
+            draw_symmetric_points(center.x, center.y, x, y);
+
+            x++;
+
+            if (d > 0)
+            {
+                y--;
+                d = d + 4 * (x - y) + 10;
+            }
+            else
+            {
+                d = d + 4 * x + 6;
+            }
+        }
     }
 
     // void Render3D::generate_screen_triangles(std::unordered_map<int, std::shared_ptr<Material>> &material_map) const
@@ -1335,6 +1347,17 @@ namespace gfx
                 .w      = pos_clip(2, 0),
                 .normal = { normal_clip(0, 0), normal_clip(1, 0), normal_clip(2, 0) }
             };
+        }
+    }
+    
+    template <typename VectorType>
+    void RenderLayer<VectorType>::draw_wireframes(RenderSurface& render_surface) const
+    {
+        for (auto& tri : _screen_triangles)
+        {
+            draw_line(tri.v0.pos, tri.v1.pos, render_surface, settings.wireframe_color);
+            draw_line(tri.v1.pos, tri.v2.pos, render_surface, settings.wireframe_color);
+            draw_line(tri.v2.pos, tri.v0.pos, render_surface, settings.wireframe_color);
         }
     }
 }

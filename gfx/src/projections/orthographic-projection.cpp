@@ -11,8 +11,8 @@ namespace gfx
     {
         Matrix3x3d matrix { Matrix3x3d::zero() };
 
-        matrix(0, 0) = 1.0 / (_zoom * aspect_ratio);
-        matrix(1, 1) = 1.0 / _zoom;
+        matrix(0, 0) = 2.0 / (_zoom * aspect_ratio);
+        matrix(1, 1) = 2.0 / _zoom;
         matrix(2, 2) = 1.0;
 
         return matrix;
@@ -45,7 +45,7 @@ namespace gfx
         const Vec2d side_x { axis_x * width };
         const Vec2d side_y { axis_y * height };
 
-        const Vec2d origin { view.get_position() - Vec2d { width, height } / 2 };
+        const Vec2d origin { view.get_position() - (side_x + side_y) * 0.5 };
 
         return ViewBounds<Vec2d>(OrientedBox<Vec2d> { origin, side_x, side_y });
     }

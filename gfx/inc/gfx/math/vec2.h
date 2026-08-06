@@ -171,6 +171,11 @@ namespace gfx
         {
             return std::sqrt(x * x + y * y);
         }
+        
+        Vec2 abs() const
+        {
+            return { std::abs(x), std::abs(y) };
+        }
 
         Vec2<int> round_to_int() const
         {

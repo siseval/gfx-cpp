@@ -159,6 +159,11 @@ namespace gfx
         {
             return std::sqrt(x * x + y * y + z * z);
         }
+        
+        Vec3 abs() const
+        {
+            return { std::abs(x), std::abs(y), std::abs(z) };
+        }
 
         Vec3<double> normalize() const
         {

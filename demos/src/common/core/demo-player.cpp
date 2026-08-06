@@ -55,7 +55,7 @@ namespace demos
             const double dt_sec { (now_us - last_frame_timestamp_us) / 1000000.0 };
 
             demos[current_demo]->render_frame(dt_sec);
-            demos[current_demo]->set_last_frame_us(now_us - last_frame_timestamp_us);
+            // demos[current_demo]->set_last_frame_us(now_us - last_frame_timestamp_us);
             last_frame_timestamp_us = now_us;
 
             // debug_viewer->update(renderer);

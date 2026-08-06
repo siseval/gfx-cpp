@@ -39,14 +39,14 @@ namespace gfx
         Color4 get_color() const;
         VectorType get_anchor() const;
         std::shared_ptr<Material> get_material(size_t slot = 0) const;
-        std::vector<std::shared_ptr<Material>> get_materials() const;
+        const std::vector<std::shared_ptr<Material>>& get_materials() const;
         std::shared_ptr<VertexShader<VectorType>> get_vertex_shader() const;
 
         AlignedBox<VectorType> get_aabb() const;
         BoundingBall<VectorType> get_bounding_sphere() const;
 
         UUID get_id() const;
-        Transform<VectorType> get_transform() const;
+        const Transform<VectorType>& get_transform() const;
         int64_t get_transform_generation() const;
 
 
@@ -221,7 +221,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    std::vector<std::shared_ptr<Material>> Primitive<VectorType>::get_materials() const
+    const std::vector<std::shared_ptr<Material>>& Primitive<VectorType>::get_materials() const
     {
         return _materials;
     }
@@ -261,7 +261,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    Transform<VectorType> Primitive<VectorType>::get_transform() const
+    const Transform<VectorType>& Primitive<VectorType>::get_transform() const
     {
         if (!_transform_dirty)
         {
@@ -270,7 +270,7 @@ namespace gfx
 
         const VectorType anchor_offset { get_anchor() * get_aabb().size() };
 
-        _cached_transform.set_transform(_position - anchor_offset, _rotation, _scale);
+        _cached_transform.set_transform(_position, _rotation, _scale, anchor_offset);
 
         _transform_dirty = false;
 
