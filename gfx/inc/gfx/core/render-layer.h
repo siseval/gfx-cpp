@@ -20,8 +20,8 @@ namespace gfx
 
         struct Settings
         {
-            bool multicore_vertex_transformation { false };
-            bool multicore_rasterization { false };
+            bool multicore_vertex_transformation { true };
+            bool multicore_rasterization { true };
 
             bool draw_wireframes { false };
             Color4 wireframe_color { Color4::white() };

@@ -189,16 +189,16 @@ namespace gfx
             pen.x += _font->get_glyph_advance(codepoint) * scale;
             i += bytes;
         }
-        
+
         _mesh_data = TriangleMesh<Vec2d>();
         _mesh_data.set_vertices(std::move(vertices));
         _mesh_data.set_faces(std::move(faces));
         _mesh_data.calculate_uvs();
-        
+
         _mesh_dirty = false;
     }
 
-    static bool is_clockwise(std::vector<Vec2d> vertices)
+    static bool is_clockwise(const std::vector<Vec2d>& vertices)
     {
         double sum = 0.0;
         for (int i = 0; i < vertices.size(); ++i)
@@ -232,21 +232,33 @@ namespace gfx
             }
             if (!is_clockwise(points))
             {
-                holes.push_back(points);
-                holes_bounds.push_back(bounds);
-                polygons.back().holes.push_back(Polygon<double>::Contour(points, false));
+                holes.push_back(std::move(points));
+                holes_bounds.push_back(std::move(bounds));
             }
             else
             {
-                polygons.push_back(Polygon<double>(points, true));
-                polygon_bounds.push_back(bounds);
+                polygons.push_back(Polygon<double>(std::move(points), true));
+                polygon_bounds.push_back(std::move(bounds));
             }
         }
+
+        for (size_t i = 0; i < holes.size(); ++i)
+        {
+            for (size_t j = 0; j < polygons.size(); ++j)
+            {
+                if (holes_bounds[i].intersects(polygon_bounds[j]))
+                {
+                    polygons[j].holes.push_back(Polygon<double>::Contour(std::move(holes[i]), false));
+                    break;
+                }
+            }
+        }
+
         for (const auto& polygon : polygons)
         {
             const auto& mesh = Triangulate::triangulate_polygon(polygon);
 
-            const size_t index_offset = vertices.size(); 
+            const size_t index_offset = vertices.size();
 
             vertices.insert(
                 vertices.end(),

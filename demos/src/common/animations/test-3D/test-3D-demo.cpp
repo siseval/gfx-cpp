@@ -494,7 +494,7 @@ namespace demos
         constexpr double min_radius = 1.0;
         constexpr double max_radius = 3.0;
         constexpr int num_boxes = 0;
-        constexpr int num_spheres = 1000;
+        constexpr int num_spheres = 0;
         constexpr int num_segments = 12;
 
         const auto rand_pos = [](const double min, const double max) {
