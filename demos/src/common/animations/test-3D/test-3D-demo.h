@@ -9,7 +9,9 @@
 
 #include <map>
 
+#include "gfx/primitives/text-2D.h"
 #include "gfx/projections/perspective-projection.h"
+#include "gfx/text/font-manager-ttf.h"
 
 namespace demos
 {
@@ -67,6 +69,10 @@ namespace demos
         std::shared_ptr<gfx::Plane3D> plane;
         std::shared_ptr<gfx::Cone3D> cone;
         std::shared_ptr<gfx::Polygon3D> teapot;
+        
+        std::shared_ptr<gfx::FontManagerTTF> font_manager;
+        std::shared_ptr<gfx::RenderLayer<gfx::Vec2d>> render2D;
+        std::shared_ptr<gfx::Text2D> text_item;
 
         void spawn_ripple(gfx::Vec2d position) const;
         gfx::Vec2d get_random_position() const;
@@ -77,6 +83,8 @@ namespace demos
         bool random_spawn = true;
         double random_spawn_interval_sec = 0.2;
         double random_spawn_timer = 0.0;
+        
+        double smoothed_fps { 0.0 };
 
         gfx::View<gfx::Vec3d> view;
         gfx::PerspectiveProjection projection;

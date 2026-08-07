@@ -449,8 +449,6 @@ namespace demos
         // text_item->set_anchor(0.5, 0.5);
         text_item->set_depth(-2.0);
         text_item->set_material(material);
-        
-        renderer->settings.draw_wireframes = true;
 
         render2D->get_scene_graph()->add_item(text_item);
 

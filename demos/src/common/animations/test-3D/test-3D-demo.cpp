@@ -1,6 +1,7 @@
 #include "common/animations/test-3D/test-3D-demo.h"
 
 #include "common/core/demo-utils.h"
+#include "gfx/projections/orthographic-projection.h"
 #include "gfx/shaders/default-fragment-shader.h"
 #include "gfx/shaders/diffuse-fragment-shader.h"
 
@@ -494,7 +495,7 @@ namespace demos
         constexpr double min_radius = 1.0;
         constexpr double max_radius = 3.0;
         constexpr int num_boxes = 0;
-        constexpr int num_spheres = 0;
+        constexpr int num_spheres = 1000;
         constexpr int num_segments = 12;
 
         const auto rand_pos = [](const double min, const double max) {
@@ -537,11 +538,42 @@ namespace demos
             scene_items.push_back(sphere);
             scene_graph->add_item(sphere);
         }
+        
+        render2D = std::make_shared<RenderLayer<Vec2d>>(renderer->get_viewport());
+        font_manager = std::make_shared<FontManagerTTF>();
+
+        font_manager->load_font_directory("/home/sisev/projects/code/cpp/sigfx/assets/fonts");
+
+        auto font = font_manager->get_font("eva-classic");
+
+        auto material { std::make_shared<Material>(std::make_shared<DefaultFragmentShader>()) };
+
+        text_item = std::make_shared<Text2D>();
+        text_item->set_text("TEST");
+        text_item->set_font(font);
+        text_item->set_font_size(16);
+        text_item->set_position(2.0, 2.0);
+        text_item->set_alignment(Text2D::TextAlignment::LEFT);
+        text_item->set_color(Color4::white());
+        // text_item->set_scale(0.01, 0.01);
+        // text_item->set_anchor(0.5, 0.5);
+        text_item->set_depth(-2.0);
+        text_item->set_material(material);
+
+        render2D->get_scene_graph()->add_item(text_item);
+
     }
 
     void Test3DDemo::render_frame(const double dt)
     {
         const double t_sec { time_sec() };
+        
+        const double now { time_us() };
+        const double delta_us { now - last_frame_us };
+        last_frame_us = now;
+
+        const double raw_fps { delta_us > 0.0 ? 1000000.0 / delta_us : 0.0 };
+        smoothed_fps = smoothed_fps * 0.9 + raw_fps * 0.1;
 
         for (const auto primitive : scene_items)
         {
@@ -595,8 +627,15 @@ namespace demos
         poll_held_keys(dt);
         update_camera(dt);
 
+        const Vec2d res { render2D->get_viewport().size };
+        
+        text_item->set_text(
+            std::format("FPS: {:.0f}\nTRI: {}", smoothed_fps, renderer->get_num_triangles())
+        );
+        
         surface->clean();
         renderer->draw_frame(*surface, view, projection);
+        render2D->draw_frame(*surface, View<Vec2d>(res / 2, 0.0), OrthographicProjection(res.y));
         surface->present();
     }
 
