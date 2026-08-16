@@ -8,6 +8,7 @@
 #include "gfx/core/render-surface.h"
 #include "gfx/core/scene-graph.h"
 #include "gfx/core/thread-pool.h"
+#include "gfx/core/types/homogenous-coordinate.h"
 #include "gfx/core/view/projection.h"
 #include "gfx/core/view/view.h"
 
@@ -73,31 +74,27 @@ namespace gfx
     private:
 
         using DrawQueue = std::vector<std::pair<std::shared_ptr<Primitive<VectorType>>, Transform<VectorType>>>;
-        using VertexIn = VertexShader<VectorType>::Input;
-        using VertexOut = VertexShader<VectorType>::Output;
-        using VertexUniforms = VertexShader<VectorType>::Uniforms;
 
         static constexpr int TILE_SIZE = 32;
 
-        struct VertexBufferIndexFace
+        struct MeshRange
         {
-            size_t v0;
-            size_t v1;
-            size_t v2;
-        };
+            size_t vertex_offset;
+            size_t vertex_count;
 
+            size_t triangle_offset;
+            size_t triangle_count;
+
+            MatrixType mvp_matrix;
+            MatrixType model_matrix;
+
+            const TriangleMesh<VectorType>& mesh;
+        };
+        
         struct ClipVertex
         {
-            VertexOut vertex_out;
-            Vec2d uv;
-            Color4 color = Color4::white();
-        };
-
-        struct ClipTriangle
-        {
-            ClipVertex v0;
-            ClipVertex v1;
-            ClipVertex v2;
+            const HomogenousCoordinate<VectorType>& coordinate;
+            
         };
 
         struct ScreenVertex
@@ -116,6 +113,11 @@ namespace gfx
             ScreenVertex v1;
             ScreenVertex v2;
             int material_id;
+        };
+
+        struct ThreadState
+        {
+            std::vector<ScreenTriangle> local_triangles;
         };
 
         struct Tile
@@ -138,8 +140,9 @@ namespace gfx
 
         void build_material_map(const DrawQueue& draw_queue) const;
 
-        void flatten_vertices(const DrawQueue& draw_queue) const;
-        void transform_vertices(const DrawQueue& draw_queue, const MatrixType& vp_matrix) const;
+        void calculate_mesh_ranges(const DrawQueue& draw_queue, const MatrixType& vp_matrix) const;
+        void transform_vertices() const;
+        void process_vertex_chunk(size_t chunk_start, size_t chunk_end);
         void construct_screen_triangles(const DrawQueue& draw_queue) const;
 
         ScreenVertex clip_to_screen(const ClipVertex& clip_vertex, double z) const;
@@ -175,16 +178,21 @@ namespace gfx
 
         mutable double _frame_start_timestamp { 0.0 };
 
+        mutable size_t _total_vertices;
+        mutable size_t _total_triangles;
+
+        mutable std::vector<MeshRange> _mesh_ranges;
+        mutable std::vector<size_t> _mesh_vertex_chunk_offsets;
+        mutable std::vector<size_t> _mesh_triangle_chunk_offsets;
+
         mutable std::unordered_map<size_t, std::shared_ptr<Material>> _material_map;
 
-        mutable std::vector<typename VertexShader<VectorType>::Input> _vertex_in_buffer;
         mutable std::vector<ClipVertex> _vertex_out_buffer;
 
         mutable std::vector<VertexBufferIndexFace> _index_faces;
         mutable std::vector<size_t> _index_face_to_material_id_map;
 
         mutable std::vector<size_t> _vertex_to_item_map;
-        mutable std::vector<size_t> _vertex_to_index_map;
         mutable std::vector<size_t> _item_to_vertex_chunk_start_map;
 
         mutable std::vector<VertexUniforms> _vertex_uniforms_buffer;
@@ -225,7 +233,7 @@ namespace gfx
 
         build_material_map(draw_queue);
 
-        flatten_vertices(draw_queue);
+        flatten_vertices(draw_queue, vp_matrix);
         transform_vertices(draw_queue, vp_matrix);
         construct_screen_triangles(draw_queue);
 
@@ -273,91 +281,125 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::flatten_vertices(const DrawQueue& draw_queue) const
+    void RenderLayer<VectorType>::calculate_mesh_ranges(const DrawQueue& draw_queue, const MatrixType& vp_matrix) const
     {
-        _vertex_in_buffer.clear();
-        _vertex_out_buffer.clear();
-        _vertex_to_item_map.clear();
-        _item_to_vertex_chunk_start_map.clear();
-        _index_faces.clear();
-        _index_face_to_material_id_map.clear();
+        _mesh_ranges.clear();
+        _mesh_vertex_chunk_offsets.clear();
+        _mesh_triangle_chunk_offsets.clear();
 
-        for (size_t i = 0; i < draw_queue.size(); ++i)
+        size_t total_vertices { 0 };
+        size_t total_triangles { 0 };
+
+        for (const auto& [item, transform] : draw_queue)
         {
-            const size_t item_chunk_start { _vertex_in_buffer.size() };
-            _item_to_vertex_chunk_start_map.emplace_back(item_chunk_start);
+            const TriangleMesh<VectorType>& mesh { item->get_mesh() };
 
-            const TriangleMesh<VectorType>& mesh { draw_queue[i].first->get_mesh() };
+            const size_t new_total_vertices { total_vertices + mesh->get_vertices().size() };
+            const size_t new_total_triangles { total_triangles + mesh->get_faces().size() };
 
-            const std::vector<VectorType>& vertices { mesh.get_vertices() };
-            const std::vector<Vec3d>& normals { mesh.get_normals() };
-            const std::vector<Vec2d>& uvs { mesh.get_uvs() };
-            const std::vector<Color4>& colors { mesh.get_colors() };
+            _mesh_ranges.emplace_back(
+                total_vertices,
+                new_total_vertices,
 
-            const std::vector<typename TriangleMesh<VectorType>::Face>& faces { mesh.get_faces() };
+                total_triangles,
+                new_total_triangles,
 
-            for (size_t j = 0; j < vertices.size(); ++j)
-            {
-                _vertex_in_buffer.emplace_back(
-                    vertices[j],
-                    normals.size() > j ? normals[j] : Vec3d::zero()
-                );
-                _vertex_to_item_map.emplace_back(i);
-            }
+                vp_matrix * transform,
+                transform,
 
-            if (_vertex_out_buffer.size() < _vertex_in_buffer.size())
-            {
-                _vertex_out_buffer.resize(_vertex_in_buffer.size());
-            }
+                mesh
+            );
 
-            const size_t uv_count = std::min(uvs.size(), vertices.size());
-            for (size_t j = 0; j < uv_count; ++j)
-            {
-                _vertex_out_buffer[j + item_chunk_start].uv = uvs[j];
-            }
+            _mesh_vertex_chunk_offsets.emplace_back(total_vertices);
+            _mesh_triangle_chunk_offsets.emplace_back(total_triangles);
 
-            const size_t color_count = std::min(colors.size(), vertices.size());
-            for (size_t j = 0; j < color_count; ++j)
-            {
-                _vertex_out_buffer[j + item_chunk_start].color = colors[j];
-            }
+            total_vertices = new_total_vertices;
+            total_triangles = new_total_triangles;
+        }
 
-            for (const auto& face : faces)
-            {
-                _index_faces.emplace_back(
-                    face.v0 + item_chunk_start,
-                    face.v1 + item_chunk_start,
-                    face.v2 + item_chunk_start
-                );
-                _index_face_to_material_id_map.emplace_back(face.material_index);
-            }
+        _total_vertices = total_vertices;
+        _total_triangles = total_triangles;
+    }
+
+    template <typename VectorType>
+    void RenderLayer<VectorType>::transform_vertices() const
+    {
+        _vertex_out_buffer.clear();
+
+        const size_t num_threads { _thread_pool->get_num_threads() };
+        const size_t chunk_size { _total_vertices / num_threads };
+        const size_t remainder { _total_vertices % num_threads };
+
+        size_t rolling_start { 0 };
+
+        for (size_t thread_index = 0; thread_index < num_threads; ++thread_index)
+        {
+            const size_t chunk_end { rolling_start + chunk_size + (thread_index < remainder ? 1 : 0) };
+
+            _thread_pool->run(thread_index, process_vertex_chunk(rolling_start, chunk_end));
+            rolling_start = chunk_end;
         }
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::transform_vertices(const DrawQueue& draw_queue, const MatrixType& vp_matrix) const
+    void RenderLayer<VectorType>::process_vertex_chunk(const size_t chunk_start, const size_t chunk_end)
     {
-        _vertex_uniforms_buffer.clear();
+        size_t mesh_index {
+            static_cast<int>(
+                std::ranges::upper_bound(_mesh_vertex_chunk_offsets, chunk_start)
+                - _mesh_vertex_chunk_offsets.begin()) - 1
+        };
 
-        for (size_t i = 0; i < draw_queue.size(); ++i)
+        size_t i { chunk_start };
+        while (i < chunk_end)
         {
-            const MatrixType& model_matrix { draw_queue[i].second.get_matrix() };
+            const MeshRange& mesh_range = _mesh_ranges[mesh_index];
+            const size_t rangeEnd = std::min(chunk_end, mesh_range.vertex_offset + mesh_range.vertex_count);
 
-            _vertex_uniforms_buffer.emplace_back(
-                _frame_start_timestamp,
-                model_matrix,
-                vp_matrix * model_matrix
-            );
+            for (; i < rangeEnd; ++i)
+            {
+                const size_t localIdx = i - mesh_range.vertex_offset;
+                _vertex_out_buffer[i] = HomogenousCoordinate<VectorType>(
+                    mesh_range.mesh->get_vertices()[localIdx],
+                    1.0,
+                    mesh_range.mvp_matrix
+                );
+            }
+
+            ++mesh_index;
         }
+    }
 
-        for (size_t i = 0; i < _vertex_in_buffer.size(); ++i)
+    template <typename VectorType>
+    void RenderLayer<VectorType>::process_triangle_chunk(
+        const size_t chunk_start,
+        const size_t chunk_end,
+        std::vector<ScreenTriangle>& screen_triangles
+    )
+    {
+        size_t mesh_index {
+            static_cast<int>(
+                std::ranges::upper_bound(_mesh_triangle_chunk_offsets, chunk_start)
+                - _mesh_triangle_chunk_offsets.begin()) - 1
+        };
+
+        size_t i { chunk_start };
+        while (i < chunk_end)
         {
-            const size_t draw_queue_index { _vertex_to_item_map[i] };
+            const MeshRange& mesh_range = _mesh_ranges[mesh_index];
+            const size_t rangeEnd = std::min(chunk_end, mesh_range.vertex_offset + mesh_range.vertex_count);
 
-            const Primitive<VectorType>& item { *draw_queue[draw_queue_index].first };
-            const VertexUniforms& uniforms { _vertex_uniforms_buffer[draw_queue_index] };
+            for (; i < rangeEnd; ++i)
+            {
+                const size_t localIdx = i - mesh_range.vertexOffset;
+                _vertex_out_buffer[i] = HomogenousCoordinate<VectorType>(
+                    mesh_range.sourceVertices[localIdx],
+                    1.0,
+                    *mesh_range.worldMatrix
+                );
+            }
 
-            _vertex_out_buffer[i].vertex_out = default_vertex_shader(_vertex_in_buffer[i], uniforms);
+            ++mesh_index;
         }
     }
 
@@ -1094,42 +1136,6 @@ namespace gfx
         const double area = (tri.v1.pos.x - tri.v0.pos.x) * (tri.v2.pos.y - tri.v0.pos.y) -
                             (tri.v1.pos.y - tri.v0.pos.y) * (tri.v2.pos.x - tri.v0.pos.x);
         return area <= 0.0;
-    }
-
-    template <typename VectorType>
-    VertexShader<VectorType>::Output RenderLayer<VectorType>::default_vertex_shader(
-        const typename VertexShader<VectorType>::Input& input,
-        const typename VertexShader<VectorType>::Uniforms& uniforms
-    ) const
-    {
-        if constexpr (std::same_as<VectorType, Vec3d>)
-        {
-            const Matrix4x1d pos_h { { input.pos.x }, { input.pos.y }, { input.pos.z }, { 1.0 } };
-            const Matrix4x1d normal_h { { input.normal.x }, { input.normal.y }, { input.normal.z }, { 0.0 } };
-
-            const Matrix4x1d pos_clip = uniforms.mvp_matrix * pos_h;
-            const Matrix4x1d normal_clip = uniforms.model_matrix * normal_h;
-
-            return typename VertexShader<VectorType>::Output {
-                .pos    = { pos_clip(0, 0), pos_clip(1, 0), pos_clip(2, 0) },
-                .w      = pos_clip(3, 0),
-                .normal = { normal_clip(0, 0), normal_clip(1, 0), normal_clip(2, 0) }
-            };
-        }
-        else
-        {
-            const Matrix3x1d pos_h { { input.pos.x }, { input.pos.y }, { 1.0 } };
-            const Matrix3x1d normal_h { { input.normal.x }, { input.normal.y }, { 0.0 } };
-
-            const Matrix3x1d pos_clip = uniforms.mvp_matrix * pos_h;
-            const Matrix3x1d normal_clip = uniforms.model_matrix * normal_h;
-
-            return typename VertexShader<VectorType>::Output {
-                .pos    = { pos_clip(0, 0), pos_clip(1, 0), },
-                .w      = pos_clip(2, 0),
-                .normal = { normal_clip(0, 0), normal_clip(1, 0), normal_clip(2, 0) }
-            };
-        }
     }
 
     template <typename VectorType>

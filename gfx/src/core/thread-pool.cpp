@@ -10,6 +10,7 @@ namespace gfx
     ThreadPool::ThreadPool(const int num_threads)
         : _barrier(num_threads + 1)
         , _running(true)
+        , _num_threads(num_threads)
     {
         for (int i = 0; i < num_threads; ++i)
         {
@@ -58,5 +59,10 @@ namespace gfx
 
             _barrier.arrive_and_wait();
         }
+    }
+
+    int ThreadPool::get_num_threads() const
+    {
+        return _num_threads;
     }
 }

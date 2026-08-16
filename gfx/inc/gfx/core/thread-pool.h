@@ -27,6 +27,8 @@ namespace gfx
 
             _barrier.arrive_and_wait();
         }
+        
+        int get_num_threads() const;
 
     private:
 
@@ -36,8 +38,9 @@ namespace gfx
         std::barrier<> _barrier;
 
         std::atomic<bool> _running;
-        std::atomic<int> _next_index { 0 };
-        int _total_work { 0 };
+        std::atomic<int> _next_index;
+        int _total_work;
+        int _num_threads;
 
         std::function<void(int)> _work_fn;
     };
