@@ -3,7 +3,8 @@ project(gfx VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(gfx)
+add_library(gfx
+        inc/gfx/core/types/homogenous-coordinate.h)
 
 
 # === PUBLIC HEADERS ===
@@ -22,7 +23,7 @@ target_sources(gfx PRIVATE
         inc/gfx/core/material/fragment-shader.h
         inc/gfx/core/material/material.h
         inc/gfx/core/material/texture.h
-        inc/gfx/core/material/vertex-shader.h
+        inc/gfx/core/vertex-shader.h
 )
 
 # --- CORE/TYPES ---

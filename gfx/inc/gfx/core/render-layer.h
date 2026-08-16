@@ -355,13 +355,9 @@ namespace gfx
             const size_t draw_queue_index { _vertex_to_item_map[i] };
 
             const Primitive<VectorType>& item { *draw_queue[draw_queue_index].first };
-            const std::shared_ptr<VertexShader<VectorType>> shader { item.get_vertex_shader() };
             const VertexUniforms& uniforms { _vertex_uniforms_buffer[draw_queue_index] };
 
-            _vertex_out_buffer[i].vertex_out =
-                shader ?
-                shader->vert(_vertex_in_buffer[i], uniforms) :
-                default_vertex_shader(_vertex_in_buffer[i], uniforms);
+            _vertex_out_buffer[i].vertex_out = default_vertex_shader(_vertex_in_buffer[i], uniforms);
         }
     }
 
@@ -476,7 +472,7 @@ namespace gfx
     {
         int x0 { static_cast<int>(a.x) };
         int y0 { static_cast<int>(a.y) };
-        
+
         const int x1 { static_cast<int>(b.x) };
         const int y1 { static_cast<int>(b.y) };
 
@@ -640,7 +636,7 @@ namespace gfx
         const bool tl2 = is_top_left(triangle.v0.pos, triangle.v1.pos);
 
         const double area { a * triangle.v0.pos.x + b * triangle.v0.pos.y + c };
-        const double inv_area { 1.0f / area };
+        const double inv_area { 1.0 / area };
 
         if (area == 0.0)
         {

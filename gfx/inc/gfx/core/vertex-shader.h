@@ -8,7 +8,7 @@ namespace gfx
     class VertexShader
     {
         using MatrixType = Transform<VectorType>::MatrixType;
-        
+
     public:
 
         struct Uniforms
@@ -31,9 +31,19 @@ namespace gfx
             Vec3d normal;
         };
 
-        virtual ~VertexShader() = default;
-
-        virtual Output vert(const Input& input, const Uniforms& uniforms) const = 0;
-
+        Output transform_position(VectorType input, const Uniforms& uniforms) const;
+        Output transform_normal(Vec3d input, const Uniforms& uniforms) const;
     };
+
+    template <typename VectorType>
+    VertexShader<VectorType>::Output VertexShader<VectorType>::transform_position(
+        const VectorType input,
+        const Uniforms& uniforms
+    ) const {}
+
+    template <typename VectorType>
+    VertexShader<VectorType>::Output VertexShader<VectorType>::transform_normal(
+        const Vec3d input,
+        const Uniforms& uniforms
+    ) const {}
 }

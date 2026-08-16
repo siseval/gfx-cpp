@@ -35,6 +35,7 @@ namespace gfx
         VectorType transform_coordinate(const VectorType& coordinate) const;
         VectorType transform_vector(const VectorType& vector) const;
 
+
     private:
 
         MatrixType _matrix;

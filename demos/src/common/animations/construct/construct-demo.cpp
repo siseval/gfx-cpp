@@ -546,7 +546,7 @@ namespace demos
 
         // debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
 
-        view2D.set_position((Vec2d)(render2D->get_viewport().size / 2));
+        view2D.set_position(static_cast<Vec2d>(render2D->get_viewport().size / 2));
         text_item->set_text(
             std::format("FPS: {:.0f}\nTRI: {}", smoothed_fps, renderer->get_num_triangles())
         );
