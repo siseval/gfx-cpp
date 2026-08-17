@@ -402,8 +402,8 @@ namespace demos
 
         scene_graph->clear();
 
-        renderer->get_viewport().size = res80;
-        surface->set_resolution(res80);
+        renderer->get_viewport().size = res360;
+        surface->set_resolution(res360);
         
         surface->set_clear_color(Color4(0.0, 0.0, 0.0));
 
@@ -496,7 +496,7 @@ namespace demos
         constexpr double max_radius = 3.0;
         constexpr int num_boxes = 0;
         constexpr int num_spheres = 1000;
-        constexpr int num_segments = 30;
+        constexpr int num_segments = 12;
 
         const auto rand_pos = [](const double min, const double max) {
             return Vec3d::from_angles(

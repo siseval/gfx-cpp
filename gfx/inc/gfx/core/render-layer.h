@@ -75,6 +75,7 @@ namespace gfx
 
         using DrawQueue = std::vector<std::pair<std::shared_ptr<Primitive<VectorType>>, Transform<VectorType>>>;
 
+        static constexpr int VERTEX_CHUNKING_FACTOR = 128;
         static constexpr int TILE_SIZE = 32;
 
         struct MeshRange
@@ -131,12 +132,13 @@ namespace gfx
             ScreenVertex v0;
             ScreenVertex v1;
             ScreenVertex v2;
-            int material_id;
+            size_t material_id;
         };
 
         struct ThreadState
         {
             std::vector<ScreenTriangle> local_triangles;
+            size_t num_triangles;
         };
 
         struct Tile
@@ -168,7 +170,7 @@ namespace gfx
         void process_triangle_chunk(
             size_t chunk_start,
             size_t chunk_end,
-            std::vector<ScreenTriangle>& screen_triangles
+            ThreadState& thread_state
         ) const;
 
         ClipVertex create_clip_vertex(
@@ -226,6 +228,7 @@ namespace gfx
 
         mutable size_t _total_vertices { 0 };
         mutable size_t _total_triangles { 0 };
+        mutable size_t _num_screen_triangles { 0 };
 
         mutable std::vector<MeshRange> _mesh_ranges;
         mutable std::vector<size_t> _mesh_vertex_chunk_offsets;
@@ -263,18 +266,10 @@ namespace gfx
                 std::chrono::high_resolution_clock::now().time_since_epoch()
             ).count() / 1000.0;
 
-        const DrawQueue& draw_queue {
-            _scene_graph->get_draw_queue(
-                projection.get_view_bounds(view, _viewport)
-            )
-        };
-        const MatrixType vp_matrix {
-            projection.get_matrix(_viewport.get_aspect_ratio()) *
-            view.get_matrix()
-        };
+        const DrawQueue& draw_queue { _scene_graph->get_draw_queue(projection.get_view_bounds(view, _viewport)) };
+        const MatrixType vp_matrix { projection.get_matrix(_viewport.get_aspect_ratio()) * view.get_matrix() };
 
         build_material_map(draw_queue);
-
         generate_mesh_ranges(draw_queue, vp_matrix);
 
         transform_vertices();
@@ -307,358 +302,39 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::build_material_map(const DrawQueue& draw_queue) const
+    std::shared_ptr<SceneGraph<VectorType>> RenderLayer<VectorType>::get_scene_graph() const
     {
-        _material_map.clear();
-
-        for (const auto& primitive : draw_queue | std::views::keys)
-        {
-            for (const auto& material : primitive->get_materials())
-            {
-                if (material)
-                {
-                    _material_map[material->get_id()] = material;
-                }
-            }
-        }
+        return _scene_graph;
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::generate_mesh_ranges(const DrawQueue& draw_queue, const MatrixType& vp_matrix) const
+    Viewport& RenderLayer<VectorType>::get_viewport()
     {
-        _mesh_ranges.clear();
-        _mesh_vertex_chunk_offsets.clear();
-        _mesh_triangle_chunk_offsets.clear();
-
-        _index_faces.clear();
-        _index_face_to_material_id_map.clear();
-
-        _total_vertices = 0;
-        _total_triangles = 0;
-
-        for (const auto& [item, transform] : draw_queue)
-        {
-            const TriangleMesh<VectorType>& mesh { item->get_mesh() };
-
-            _mesh_ranges.emplace_back(
-                _total_vertices,
-                mesh.get_vertices().size(),
-
-                _total_triangles,
-                mesh.get_faces().size(),
-
-                vp_matrix * transform.get_matrix(),
-                transform.get_matrix(),
-
-                mesh,
-                item->get_materials()
-            );
-
-            if constexpr (std::same_as<VectorType, Vec2d>)
-            {
-                _mesh_ranges.back().depth = item->get_depth();
-            }
-
-            _mesh_vertex_chunk_offsets.emplace_back(_total_vertices);
-            _mesh_triangle_chunk_offsets.emplace_back(_total_triangles);
-
-            for (const typename TriangleMesh<VectorType>::Face& face : mesh.get_faces())
-            {
-                _index_faces.emplace_back(
-                    face.v0 + _total_vertices,
-                    face.v1 + _total_vertices,
-                    face.v2 + _total_vertices
-                );
-
-                _index_face_to_material_id_map.emplace_back(face.material_index);
-            }
-
-            _total_vertices += mesh.get_vertices().size();
-            _total_triangles += mesh.get_faces().size();
-        }
-    }
-
-    static constexpr int OVERSUBSCRIPTION_FACTOR = 64; // tune via profiling; 4–16 is a reasonable starting range
-
-    template <typename VectorType>
-    void RenderLayer<VectorType>::transform_vertices() const
-    {
-        _vertex_out_buffer.clear();
-        _vertex_out_buffer.resize(_total_vertices);
-
-        const int num_threads { _thread_pool->get_num_threads() };
-        const int num_chunks { num_threads * OVERSUBSCRIPTION_FACTOR };
-
-        const size_t chunk_size { _total_vertices / num_chunks };
-        const size_t remainder { _total_vertices % num_chunks };
-
-        std::vector<size_t> chunk_starts(num_chunks + 1);
-        chunk_starts[0] = 0;
-        for (int c = 0; c < num_chunks; ++c)
-        {
-            chunk_starts[c + 1] = chunk_starts[c] + chunk_size + (static_cast<size_t>(c) < remainder ? 1 : 0);
-        }
-
-        _thread_pool->run(
-            num_chunks,
-            [&](const int chunk_index) {
-                process_vertex_chunk(chunk_starts[chunk_index], chunk_starts[chunk_index + 1]);
-            }
-        );
+        return _viewport;
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::process_vertex_chunk(const size_t chunk_start, const size_t chunk_end) const
+    int RenderLayer<VectorType>::get_num_triangles() const
     {
-        size_t mesh_index {
-            static_cast<size_t>(
-                std::ranges::upper_bound(_mesh_vertex_chunk_offsets, chunk_start)
-                - _mesh_vertex_chunk_offsets.begin()) - 1
-        };
-
-        size_t i { chunk_start };
-        while (i < chunk_end)
-        {
-            const MeshRange& mesh_range = _mesh_ranges[mesh_index];
-            const size_t range_end = std::min(chunk_end, mesh_range.vertex_offset + mesh_range.vertex_count);
-
-            for (; i < range_end; ++i)
-            {
-                const size_t local_index = i - mesh_range.vertex_offset;
-                _vertex_out_buffer[i] = HomogenousCoordinate<VectorType>(
-                    mesh_range.mesh.get_vertices()[local_index],
-                    1.0,
-                    mesh_range.mvp_matrix
-                );
-            }
-
-            ++mesh_index;
-        }
+        return _screen_triangles.size();
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::generate_screen_triangles() const
+    void RenderLayer<VectorType>::add_fullscreen_shader(const std::shared_ptr<FragmentShader> shader)
     {
-        _screen_triangles.clear();
-
-        const int num_threads { _thread_pool->get_num_threads() };
-        const int num_chunks { num_threads * OVERSUBSCRIPTION_FACTOR };
-
-        if (static_cast<int>(_thread_states.size()) != num_chunks)
-        {
-            _thread_states.resize(num_chunks); // one-time-ish resize; capacities inside persist frame to frame after that
-        }
-
-        const size_t chunk_size { _total_triangles / num_chunks };
-        const size_t remainder { _total_triangles % num_chunks };
-
-        std::vector<size_t> chunk_starts(num_chunks + 1);
-        chunk_starts[0] = 0;
-        for (int c = 0; c < num_chunks; ++c)
-        {
-            chunk_starts[c + 1] = chunk_starts[c] + chunk_size + (static_cast<size_t>(c) < remainder ? 1 : 0);
-        }
-
-        _thread_pool->run(
-            num_chunks,
-            [&](const int chunk_index) {
-                process_triangle_chunk(chunk_starts[chunk_index], chunk_starts[chunk_index + 1], _thread_states[chunk_index].local_triangles);
-            }
-        );
-
-        std::vector<int> offsets(num_chunks + 1, 0);
-        for (int i = 0; i < num_chunks; ++i)
-        {
-            offsets[i + 1] = offsets[i] + static_cast<int>(_thread_states[i].local_triangles.size());
-        }
-
-        _screen_triangles.resize(offsets[num_chunks]);
-
-        _thread_pool->run(
-            num_chunks,
-            [&](const int chunk_index) {
-                std::copy(
-                    _thread_states[chunk_index].local_triangles.begin(),
-                    _thread_states[chunk_index].local_triangles.end(),
-                    _screen_triangles.begin() + offsets[chunk_index]
-                );
-            }
-        );
+        _fullscreen_shaders.push_back(shader);
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::process_triangle_chunk(
-        const size_t chunk_start,
-        const size_t chunk_end,
-        std::vector<ScreenTriangle>& screen_triangles
-    ) const
+    void RenderLayer<VectorType>::remove_fullscreen_shader(const std::shared_ptr<FragmentShader> shader)
     {
-        screen_triangles.clear();
-
-        size_t mesh_index {
-            static_cast<size_t>(
-                std::ranges::upper_bound(_mesh_triangle_chunk_offsets, chunk_start)
-                - _mesh_triangle_chunk_offsets.begin()) - 1
-        };
-
-        size_t i { chunk_start };
-        while (i < chunk_end)
-        {
-            const MeshRange& mesh_range = _mesh_ranges[mesh_index];
-
-            const TriangleMesh<VectorType>& mesh = mesh_range.mesh;
-            const MatrixType& model_matrix = mesh_range.model_matrix;
-
-            const size_t range_end { std::min(chunk_end, mesh_range.triangle_offset + mesh_range.triangle_count) };
-
-            for (; i < range_end; ++i)
-            {
-                const VertexBufferIndexFace& face = _index_faces[i];
-
-                const HomogenousCoordinate<VectorType>& v0 = _vertex_out_buffer[face.v0];
-                const HomogenousCoordinate<VectorType>& v1 = _vertex_out_buffer[face.v1];
-                const HomogenousCoordinate<VectorType>& v2 = _vertex_out_buffer[face.v2];
-
-                if constexpr (std::same_as<VectorType, Vec2d>)
-                {
-                    screen_triangles.emplace_back(
-                        clip_to_screen(v0, mesh_range.depth, model_matrix, mesh, face.v0 - mesh_range.vertex_offset),
-                        clip_to_screen(v1, mesh_range.depth, model_matrix, mesh, face.v1 - mesh_range.vertex_offset),
-                        clip_to_screen(v2, mesh_range.depth, model_matrix, mesh, face.v2 - mesh_range.vertex_offset),
-                        mesh_range.materials[_index_face_to_material_id_map[i]]->get_id()
-                    );
-                }
-                else
-                {
-                    const int num_inside { num_inside_near_plane(v0, v1, v2) };
-
-                    if (num_inside <= 0)
-                    {
-                        continue;
-                    }
-
-                    if (num_inside >= 3 && !is_backface(v0, v1, v2))
-                    {
-                        screen_triangles.emplace_back(
-                            clip_to_screen(v0, v0.pos.z, model_matrix, mesh, face.v0 - mesh_range.vertex_offset),
-                            clip_to_screen(v1, v1.pos.z, model_matrix, mesh, face.v1 - mesh_range.vertex_offset),
-                            clip_to_screen(v2, v2.pos.z, model_matrix, mesh, face.v2 - mesh_range.vertex_offset),
-                            mesh_range.materials[_index_face_to_material_id_map[i]]->get_id()
-                        );
-                        continue;
-                    }
-
-                    std::array<ClipTriangle, 2> new_triangles;
-                    const int num_returned {
-                        clip_against_near_plane(
-                            ClipTriangle {
-                                .v0 = create_clip_vertex(v0, mesh, face.v0 - mesh_range.vertex_offset),
-                                .v1 = create_clip_vertex(v1, mesh, face.v1 - mesh_range.vertex_offset),
-                                .v2 = create_clip_vertex(v2, mesh, face.v2 - mesh_range.vertex_offset)
-                            },
-                            new_triangles
-                        )
-                    };
-
-                    for (int j = 0; j < num_returned; ++j)
-                    {
-                        screen_triangles.emplace_back(
-                            clip_to_screen(new_triangles[j].v0, new_triangles[j].v0.coordinate.pos.z),
-                            clip_to_screen(new_triangles[j].v1, new_triangles[j].v1.coordinate.pos.z),
-                            clip_to_screen(new_triangles[j].v2, new_triangles[j].v2.coordinate.pos.z),
-                            mesh_range.materials[_index_face_to_material_id_map[i]]->get_id()
-                        );
-                    }
-                }
-            }
-
-            ++mesh_index;
-        }
+        std::erase(_fullscreen_shaders, shader);
     }
 
     template <typename VectorType>
-    RenderLayer<VectorType>::ClipVertex RenderLayer<VectorType>::create_clip_vertex(
-        const HomogenousCoordinate<VectorType>& coordinate,
-        const TriangleMesh<VectorType>& mesh,
-        const size_t attribute_index
-    ) const
+    void RenderLayer<VectorType>::clear_fullscreen_shaders()
     {
-        return ClipVertex {
-            .coordinate = coordinate,
-            .normal = mesh.get_normals().size() > attribute_index ? mesh.get_normals()[attribute_index] : Vec3d::zero(),
-            .uv = mesh.get_uvs().size() > attribute_index ? mesh.get_uvs()[attribute_index] : Vec2d::zero(),
-            .color = mesh.get_colors().size() > attribute_index ? mesh.get_colors()[attribute_index] : Color4::white(),
-
-        };
-    }
-
-    template <typename VectorType>
-    RenderLayer<VectorType>::ScreenVertex RenderLayer<VectorType>::clip_to_screen(
-        const HomogenousCoordinate<VectorType>& coordinate,
-        const double z,
-        const MatrixType& normal_transform,
-        const TriangleMesh<VectorType>& mesh,
-        const size_t attribute_index
-    ) const
-    {
-        const double inv_w { 1.0 / coordinate.w };
-
-        if constexpr (std::same_as<VectorType, Vec3d>)
-        {
-            return ScreenVertex {
-                .pos = {
-                    (coordinate.pos.x * inv_w * 0.5 + 0.5) * _viewport.size.x,
-                    (coordinate.pos.y * inv_w * 0.5 + 0.5) * _viewport.size.y
-                },
-                .normal = mesh.get_normals().size() > attribute_index ?
-                          Transform<Vec3d>::transform_vector(mesh.get_normals()[attribute_index], normal_transform) :
-                          Vec3d::zero(),
-                .uv    = mesh.get_uvs().size() > attribute_index ? mesh.get_uvs()[attribute_index] : Vec2d::zero(),
-                .color = mesh.get_colors().size() > attribute_index ?
-                         mesh.get_colors()[attribute_index] :
-                         Color4::white(),
-                .inv_w    = inv_w,
-                .z_over_w = z * inv_w
-            };
-        }
-        else
-        {
-            return ScreenVertex {
-                .pos = {
-                    (coordinate.pos.x * inv_w * 0.5 + 0.5) * _viewport.size.x,
-                    (coordinate.pos.y * inv_w * 0.5 + 0.5) * _viewport.size.y
-                },
-                .normal = Vec3d::zero(),
-                .uv     = mesh.get_uvs().size() > attribute_index ? mesh.get_uvs()[attribute_index] : Vec2d::zero(),
-                .color  = mesh.get_colors().size() > attribute_index ?
-                          mesh.get_colors()[attribute_index] :
-                          Color4::white(),
-                .inv_w    = inv_w,
-                .z_over_w = z * inv_w
-            };
-        }
-    }
-
-
-    template <typename VectorType>
-    RenderLayer<VectorType>::ScreenVertex RenderLayer<VectorType>::clip_to_screen(
-        const ClipVertex& vertex,
-        const double z
-    ) const
-    {
-        const double inv_w { 1.0 / vertex.coordinate.w };
-
-        return ScreenVertex {
-            .pos = {
-                (vertex.coordinate.pos.x * inv_w * 0.5 + 0.5) * _viewport.size.x,
-                (vertex.coordinate.pos.y * inv_w * 0.5 + 0.5) * _viewport.size.y
-            },
-            .normal   = vertex.normal,
-            .uv       = vertex.uv,
-            .color    = vertex.color,
-            .inv_w    = inv_w,
-            .z_over_w = z * inv_w
-        };
+        _fullscreen_shaders.clear();
     }
 
     template <typename VectorType>
@@ -751,136 +427,390 @@ namespace gfx
         }
     }
 
-    template <typename VectorType>
-    std::shared_ptr<SceneGraph<VectorType>> RenderLayer<VectorType>::get_scene_graph() const
-    {
-        return _scene_graph;
-    }
 
     template <typename VectorType>
-    Viewport& RenderLayer<VectorType>::get_viewport()
+    void RenderLayer<VectorType>::build_material_map(const DrawQueue& draw_queue) const
     {
-        return _viewport;
-    }
+        _material_map.clear();
 
-    template <typename VectorType>
-    int RenderLayer<VectorType>::get_num_triangles() const
-    {
-        return _screen_triangles.size();
-    }
-
-    template <typename VectorType>
-    void RenderLayer<VectorType>::add_fullscreen_shader(const std::shared_ptr<FragmentShader> shader)
-    {
-        _fullscreen_shaders.push_back(shader);
-    }
-
-    template <typename VectorType>
-    void RenderLayer<VectorType>::remove_fullscreen_shader(const std::shared_ptr<FragmentShader> shader)
-    {
-        std::erase(_fullscreen_shaders, shader);
-    }
-
-    template <typename VectorType>
-    void RenderLayer<VectorType>::clear_fullscreen_shaders()
-    {
-        _fullscreen_shaders.clear();
-    }
-
-    template <typename VectorType>
-    void RenderLayer<VectorType>::rasterize_triangle_in_tile(
-        const ScreenTriangle& triangle,
-        const int tri_index,
-        Tile& tile
-    )
-    {
-        Box2d bounds {
-            static_cast<Vec2d>(Vec2d {
-                std::min({ triangle.v0.pos.x, triangle.v1.pos.x, triangle.v2.pos.x }),
-                std::min({ triangle.v0.pos.y, triangle.v1.pos.y, triangle.v2.pos.y })
-            }.round_to_int()),
-            static_cast<Vec2d>(Vec2d {
-                std::max({ triangle.v0.pos.x, triangle.v1.pos.x, triangle.v2.pos.x }),
-                std::max({ triangle.v0.pos.y, triangle.v1.pos.y, triangle.v2.pos.y })
-            }.round_to_int())
-        };
-
-        const Box2d clip_bounds {
-            static_cast<Vec2d>(tile.screen_pos),
-            static_cast<Vec2d>(tile.screen_pos + Vec2i(TILE_SIZE))
-        };
-
-        bounds.min.x = std::max(bounds.min.x, clip_bounds.min.x);
-        bounds.min.y = std::max(bounds.min.y, clip_bounds.min.y);
-        bounds.max.x = std::min(bounds.max.x, clip_bounds.max.x);
-        bounds.max.y = std::min(bounds.max.y, clip_bounds.max.y);
-
-        auto is_top_left = [](const Vec2d& a, const Vec2d& b) {
-            return a.y < b.y || (a.y == b.y && a.x > b.x);
-        };
-
-        const double a { triangle.v1.pos.y - triangle.v2.pos.y };
-        const double b { triangle.v2.pos.x - triangle.v1.pos.x };
-        const double c { triangle.v1.pos.x * triangle.v2.pos.y - triangle.v1.pos.y * triangle.v2.pos.x };
-
-        const double d { triangle.v2.pos.y - triangle.v0.pos.y };
-        const double e { triangle.v0.pos.x - triangle.v2.pos.x };
-        const double f { triangle.v2.pos.x * triangle.v0.pos.y - triangle.v2.pos.y * triangle.v0.pos.x };
-
-        const double g { triangle.v0.pos.y - triangle.v1.pos.y };
-        const double h { triangle.v1.pos.x - triangle.v0.pos.x };
-        const double i { triangle.v0.pos.x * triangle.v1.pos.y - triangle.v0.pos.y * triangle.v1.pos.x };
-
-        const bool tl0 = is_top_left(triangle.v1.pos, triangle.v2.pos);
-        const bool tl1 = is_top_left(triangle.v2.pos, triangle.v0.pos);
-        const bool tl2 = is_top_left(triangle.v0.pos, triangle.v1.pos);
-
-        const double area { a * triangle.v0.pos.x + b * triangle.v0.pos.y + c };
-        const double inv_area { 1.0 / area };
-
-        if (area == 0.0)
+        for (const auto& primitive : draw_queue | std::views::keys)
         {
-            return;
-        }
-
-        Vec3d w_row {
-            a * (bounds.min.x + 0.5) + b * (bounds.min.y + 0.5) + c,
-            d * (bounds.min.x + 0.5) + e * (bounds.min.y + 0.5) + f,
-            g * (bounds.min.x + 0.5) + h * (bounds.min.y + 0.5) + i
-        };
-
-        for (int y = std::floor(bounds.min.y); y < std::ceil(bounds.max.y); ++y)
-        {
-            Vec3d w { w_row };
-
-            for (int x = std::floor(bounds.min.x); x < std::ceil(bounds.max.x); ++x)
+            for (const auto& material : primitive->get_materials())
             {
-                if ((w.x > 0 || (w.x == 0 && tl0)) && (w.y > 0 || (w.y == 0 && tl1)) && (w.z > 0 || (w.z == 0 && tl2)))
+                if (material)
                 {
-                    const double depth {
-                        (w.x * triangle.v0.z_over_w + w.y * triangle.v1.z_over_w + w.z * triangle.v2.z_over_w) *
-                        inv_area
-                    };
-
-                    const int buffer_index { (y - tile.screen_pos.y) * TILE_SIZE + (x - tile.screen_pos.x) };
-
-                    if (depth < tile.depth_buffer[buffer_index])
-                    {
-                        tile.triangle_index_buffer[buffer_index] = tri_index;
-                        tile.material_id_buffer[buffer_index] = triangle.material_id;
-                        tile.depth_buffer[buffer_index] = depth;
-                    }
+                    _material_map[material->get_id()] = material;
                 }
+            }
+        }
+    }
 
-                w.x += a;
-                w.y += d;
-                w.z += g;
+    template <typename VectorType>
+    void RenderLayer<VectorType>::generate_mesh_ranges(const DrawQueue& draw_queue, const MatrixType& vp_matrix) const
+    {
+        _mesh_ranges.clear();
+        _mesh_vertex_chunk_offsets.clear();
+        _mesh_triangle_chunk_offsets.clear();
+
+        _index_faces.clear();
+        _index_face_to_material_id_map.clear();
+
+        _total_vertices = 0;
+        _total_triangles = 0;
+
+        for (const auto& [item, transform] : draw_queue)
+        {
+            const TriangleMesh<VectorType>& mesh { item->get_mesh() };
+
+            _mesh_ranges.emplace_back(
+                _total_vertices,
+                mesh.get_vertices().size(),
+
+                _total_triangles,
+                mesh.get_faces().size(),
+
+                vp_matrix * transform.get_matrix(),
+                transform.get_matrix(),
+
+                mesh,
+                item->get_materials()
+            );
+
+            if constexpr (std::same_as<VectorType, Vec2d>)
+            {
+                _mesh_ranges.back().depth = item->get_depth();
             }
 
-            w_row.x += b;
-            w_row.y += e;
-            w_row.z += h;
+            _mesh_vertex_chunk_offsets.emplace_back(_total_vertices);
+            _mesh_triangle_chunk_offsets.emplace_back(_total_triangles);
+
+            for (const typename TriangleMesh<VectorType>::Face& face : mesh.get_faces())
+            {
+                _index_faces.emplace_back(
+                    face.v0 + _total_vertices,
+                    face.v1 + _total_vertices,
+                    face.v2 + _total_vertices
+                );
+
+                _index_face_to_material_id_map.emplace_back(face.material_index);
+            }
+
+            _total_vertices += mesh.get_vertices().size();
+            _total_triangles += mesh.get_faces().size();
         }
+    }
+
+    template <typename VectorType>
+    void RenderLayer<VectorType>::transform_vertices() const
+    {
+        if (_vertex_out_buffer.size() < _total_vertices)
+        {
+            _vertex_out_buffer.resize(_total_vertices);
+        }
+
+        const int num_threads { _thread_pool->get_num_threads() };
+        const int num_chunks { num_threads * VERTEX_CHUNKING_FACTOR };
+
+        const size_t chunk_size { _total_vertices / num_chunks };
+        const size_t remainder { _total_vertices % num_chunks };
+
+        std::vector<size_t> chunk_starts(num_chunks + 1);
+        chunk_starts[0] = 0;
+        for (int c = 0; c < num_chunks; ++c)
+        {
+            chunk_starts[c + 1] = chunk_starts[c] + chunk_size + (static_cast<size_t>(c) < remainder ? 1 : 0);
+        }
+
+        _thread_pool->run(
+            num_chunks,
+            [&](const int chunk_index) {
+                process_vertex_chunk(chunk_starts[chunk_index], chunk_starts[chunk_index + 1]);
+            }
+        );
+    }
+
+    template <typename VectorType>
+    void RenderLayer<VectorType>::process_vertex_chunk(const size_t chunk_start, const size_t chunk_end) const
+    {
+        size_t mesh_index {
+            static_cast<size_t>(
+                std::ranges::upper_bound(_mesh_vertex_chunk_offsets, chunk_start)
+                - _mesh_vertex_chunk_offsets.begin()) - 1
+        };
+
+        size_t i { chunk_start };
+        while (i < chunk_end)
+        {
+            const MeshRange& mesh_range = _mesh_ranges[mesh_index];
+            const size_t range_end = std::min(chunk_end, mesh_range.vertex_offset + mesh_range.vertex_count);
+
+            for (; i < range_end; ++i)
+            {
+                const size_t local_index = i - mesh_range.vertex_offset;
+                _vertex_out_buffer[i] = HomogenousCoordinate<VectorType>(
+                    mesh_range.mesh.get_vertices()[local_index],
+                    1.0,
+                    mesh_range.mvp_matrix
+                );
+            }
+
+            ++mesh_index;
+        }
+    }
+
+    template <typename VectorType>
+    void RenderLayer<VectorType>::generate_screen_triangles() const
+    {
+        const int num_threads { _thread_pool->get_num_threads() };
+        const int num_chunks { num_threads * VERTEX_CHUNKING_FACTOR };
+
+        if (static_cast<int>(_thread_states.size()) != num_chunks)
+        {
+            _thread_states.resize(num_chunks);
+        }
+
+        const size_t chunk_size { _total_triangles / num_chunks };
+        const size_t remainder { _total_triangles % num_chunks };
+
+        std::vector<size_t> chunk_starts(num_chunks + 1);
+        chunk_starts[0] = 0;
+        for (int c = 0; c < num_chunks; ++c)
+        {
+            chunk_starts[c + 1] = chunk_starts[c] + chunk_size + (static_cast<size_t>(c) < remainder ? 1 : 0);
+        }
+
+        _thread_pool->run(
+            num_chunks,
+            [&](const int chunk_index) {
+                process_triangle_chunk(
+                    chunk_starts[chunk_index],
+                    chunk_starts[chunk_index + 1],
+                    _thread_states[chunk_index]
+                );
+            }
+        );
+
+        std::vector<int> offsets(num_chunks + 1, 0);
+        for (int i = 0; i < num_chunks; ++i)
+        {
+            offsets[i + 1] = offsets[i] + static_cast<int>(_thread_states[i].num_triangles);
+        }
+
+        if (_screen_triangles.size() < offsets[num_chunks])
+        {
+            _screen_triangles.resize(offsets[num_chunks]);
+        }
+        _num_screen_triangles = offsets[num_chunks];
+
+        _thread_pool->run(
+            num_chunks,
+            [&](const int chunk_index) {
+                std::copy(
+                    _thread_states[chunk_index].local_triangles.begin(),
+                    _thread_states[chunk_index].local_triangles.begin() + _thread_states[chunk_index].num_triangles,
+                    _screen_triangles.begin() + offsets[chunk_index]
+                );
+            }
+        );
+    }
+
+    template <typename VectorType>
+    void RenderLayer<VectorType>::process_triangle_chunk(
+        const size_t chunk_start,
+        const size_t chunk_end,
+        ThreadState& thread_state
+    ) const
+    {
+        size_t mesh_index {
+            static_cast<size_t>(
+                std::ranges::upper_bound(_mesh_triangle_chunk_offsets, chunk_start)
+                - _mesh_triangle_chunk_offsets.begin()) - 1
+        };
+
+        size_t& num_added = thread_state.num_triangles = 0;
+        std::vector<ScreenTriangle>& screen_triangles = thread_state.local_triangles;
+        
+        size_t chunk_size { (chunk_end - chunk_start) * 2 };
+        if (screen_triangles.size() < chunk_size)
+        {
+            screen_triangles.resize(chunk_size);
+        }
+
+        size_t i { chunk_start };
+        while (i < chunk_end)
+        {
+            const MeshRange& mesh_range = _mesh_ranges[mesh_index];
+
+            const TriangleMesh<VectorType>& mesh = mesh_range.mesh;
+            const MatrixType& model_matrix = mesh_range.model_matrix;
+
+            const size_t range_end { std::min(chunk_end, mesh_range.triangle_offset + mesh_range.triangle_count) };
+
+            for (; i < range_end; ++i)
+            {
+                const VertexBufferIndexFace& face = _index_faces[i];
+
+                const HomogenousCoordinate<VectorType>& v0 = _vertex_out_buffer[face.v0];
+                const HomogenousCoordinate<VectorType>& v1 = _vertex_out_buffer[face.v1];
+                const HomogenousCoordinate<VectorType>& v2 = _vertex_out_buffer[face.v2];
+
+                if constexpr (std::same_as<VectorType, Vec2d>)
+                {
+                    screen_triangles[num_added++] = ScreenTriangle {
+                        .v0 = clip_to_screen(
+                            v0,
+                            mesh_range.depth,
+                            model_matrix,
+                            mesh,
+                            face.v0 - mesh_range.vertex_offset
+                        ),
+                        .v1 = clip_to_screen(
+                            v1,
+                            mesh_range.depth,
+                            model_matrix,
+                            mesh,
+                            face.v1 - mesh_range.vertex_offset
+                        ),
+                        .v2 = clip_to_screen(
+                            v2,
+                            mesh_range.depth,
+                            model_matrix,
+                            mesh,
+                            face.v2 - mesh_range.vertex_offset
+                        ),
+                        .material_id = mesh_range.materials[_index_face_to_material_id_map[i]]->get_id()
+                    };
+                }
+                else
+                {
+                    const int num_inside { num_inside_near_plane(v0, v1, v2) };
+
+                    if (num_inside <= 0)
+                    {
+                        continue;
+                    }
+
+                    if (num_inside >= 3 && !is_backface(v0, v1, v2))
+                    {
+                        screen_triangles[num_added++] = ScreenTriangle {
+                            .v0 = clip_to_screen(v0, v0.pos.z, model_matrix, mesh, face.v0 - mesh_range.vertex_offset),
+                            .v1 = clip_to_screen(v1, v1.pos.z, model_matrix, mesh, face.v1 - mesh_range.vertex_offset),
+                            .v2 = clip_to_screen(v2, v2.pos.z, model_matrix, mesh, face.v2 - mesh_range.vertex_offset),
+                            .material_id = mesh_range.materials[_index_face_to_material_id_map[i]]->get_id()
+                        };
+                        continue;
+                    }
+
+                    std::array<ClipTriangle, 2> new_triangles;
+                    const int num_returned {
+                        clip_against_near_plane(
+                            ClipTriangle {
+                                .v0 = create_clip_vertex(v0, mesh, face.v0 - mesh_range.vertex_offset),
+                                .v1 = create_clip_vertex(v1, mesh, face.v1 - mesh_range.vertex_offset),
+                                .v2 = create_clip_vertex(v2, mesh, face.v2 - mesh_range.vertex_offset)
+                            },
+                            new_triangles
+                        )
+                    };
+
+                    for (int j = 0; j < num_returned; ++j)
+                    {
+                        screen_triangles[num_added++] = ScreenTriangle {
+                            .v0          = clip_to_screen(new_triangles[j].v0, new_triangles[j].v0.coordinate.pos.z),
+                            .v1          = clip_to_screen(new_triangles[j].v1, new_triangles[j].v1.coordinate.pos.z),
+                            .v2          = clip_to_screen(new_triangles[j].v2, new_triangles[j].v2.coordinate.pos.z),
+                            .material_id = mesh_range.materials[_index_face_to_material_id_map[i]]->get_id()
+                        };
+                    }
+                }
+            }
+
+            ++mesh_index;
+        }
+    }
+
+    template <typename VectorType>
+    RenderLayer<VectorType>::ClipVertex RenderLayer<VectorType>::create_clip_vertex(
+        const HomogenousCoordinate<VectorType>& coordinate,
+        const TriangleMesh<VectorType>& mesh,
+        const size_t attribute_index
+    ) const
+    {
+        return ClipVertex {
+            .coordinate = coordinate,
+            .normal = mesh.get_normals().size() > attribute_index ? mesh.get_normals()[attribute_index] : Vec3d::zero(),
+            .uv = mesh.get_uvs().size() > attribute_index ? mesh.get_uvs()[attribute_index] : Vec2d::zero(),
+            .color = mesh.get_colors().size() > attribute_index ? mesh.get_colors()[attribute_index] : Color4::white(),
+
+        };
+    }
+
+    template <typename VectorType>
+    RenderLayer<VectorType>::ScreenVertex RenderLayer<VectorType>::clip_to_screen(
+        const HomogenousCoordinate<VectorType>& coordinate,
+        const double z,
+        const MatrixType& normal_transform,
+        const TriangleMesh<VectorType>& mesh,
+        const size_t attribute_index
+    ) const
+    {
+        const double inv_w { 1.0 / coordinate.w };
+
+        if constexpr (std::same_as<VectorType, Vec3d>)
+        {
+            return ScreenVertex {
+                .pos = {
+                    (coordinate.pos.x * inv_w * 0.5 + 0.5) * _viewport.size.x,
+                    (coordinate.pos.y * inv_w * 0.5 + 0.5) * _viewport.size.y
+                },
+                .normal = mesh.get_normals().size() > attribute_index ?
+                          Transform<Vec3d>::transform_vector(mesh.get_normals()[attribute_index], normal_transform) :
+                          Vec3d::zero(),
+                .uv    = mesh.get_uvs().size() > attribute_index ? mesh.get_uvs()[attribute_index] : Vec2d::zero(),
+                .color = mesh.get_colors().size() > attribute_index ?
+                         mesh.get_colors()[attribute_index] :
+                         Color4::white(),
+                .inv_w    = inv_w,
+                .z_over_w = z * inv_w
+            };
+        }
+        else
+        {
+            return ScreenVertex {
+                .pos = {
+                    (coordinate.pos.x * inv_w * 0.5 + 0.5) * _viewport.size.x,
+                    (coordinate.pos.y * inv_w * 0.5 + 0.5) * _viewport.size.y
+                },
+                .normal = Vec3d::zero(),
+                .uv     = mesh.get_uvs().size() > attribute_index ? mesh.get_uvs()[attribute_index] : Vec2d::zero(),
+                .color  = mesh.get_colors().size() > attribute_index ?
+                          mesh.get_colors()[attribute_index] :
+                          Color4::white(),
+                .inv_w    = inv_w,
+                .z_over_w = z * inv_w
+            };
+        }
+    }
+
+    template <typename VectorType>
+    RenderLayer<VectorType>::ScreenVertex RenderLayer<VectorType>::clip_to_screen(
+        const ClipVertex& vertex,
+        const double z
+    ) const
+    {
+        const double inv_w { 1.0 / vertex.coordinate.w };
+
+        return ScreenVertex {
+            .pos = {
+                (vertex.coordinate.pos.x * inv_w * 0.5 + 0.5) * _viewport.size.x,
+                (vertex.coordinate.pos.y * inv_w * 0.5 + 0.5) * _viewport.size.y
+            },
+            .normal   = vertex.normal,
+            .uv       = vertex.uv,
+            .color    = vertex.color,
+            .inv_w    = inv_w,
+            .z_over_w = z * inv_w
+        };
     }
 
     template <typename VectorType>
@@ -917,8 +847,10 @@ namespace gfx
     {
         const Vec2i resolution { _viewport.size };
 
-        for (const auto& triangle : _screen_triangles)
+        for (size_t i = 0; i < _num_screen_triangles; ++i)
         {
+            const auto& triangle = _screen_triangles[i];
+
             const Vec2i v0_tile {
                 static_cast<int>(std::floor(triangle.v0.pos.x)) / TILE_SIZE,
                 static_cast<int>(std::floor(triangle.v0.pos.y)) / TILE_SIZE
@@ -1150,6 +1082,113 @@ namespace gfx
     }
 
     template <typename VectorType>
+    void RenderLayer<VectorType>::rasterize_triangle_in_tile(
+        const ScreenTriangle& triangle,
+        const int tri_index,
+        Tile& tile
+    )
+    {
+        Box2d bounds {
+            static_cast<Vec2d>(Vec2d {
+                std::min({ triangle.v0.pos.x, triangle.v1.pos.x, triangle.v2.pos.x }),
+                std::min({ triangle.v0.pos.y, triangle.v1.pos.y, triangle.v2.pos.y })
+            }.round_to_int()),
+            static_cast<Vec2d>(Vec2d {
+                std::max({ triangle.v0.pos.x, triangle.v1.pos.x, triangle.v2.pos.x }),
+                std::max({ triangle.v0.pos.y, triangle.v1.pos.y, triangle.v2.pos.y })
+            }.round_to_int())
+        };
+
+        const Box2d clip_bounds {
+            static_cast<Vec2d>(tile.screen_pos),
+            static_cast<Vec2d>(tile.screen_pos + Vec2i(TILE_SIZE))
+        };
+
+        bounds.min.x = std::max(bounds.min.x, clip_bounds.min.x);
+        bounds.min.y = std::max(bounds.min.y, clip_bounds.min.y);
+        bounds.max.x = std::min(bounds.max.x, clip_bounds.max.x);
+        bounds.max.y = std::min(bounds.max.y, clip_bounds.max.y);
+
+        auto is_top_left = [](const Vec2d& a, const Vec2d& b) {
+            return a.y < b.y || (a.y == b.y && a.x > b.x);
+        };
+
+        const double a { triangle.v1.pos.y - triangle.v2.pos.y };
+        const double b { triangle.v2.pos.x - triangle.v1.pos.x };
+        const double c { triangle.v1.pos.x * triangle.v2.pos.y - triangle.v1.pos.y * triangle.v2.pos.x };
+
+        const double d { triangle.v2.pos.y - triangle.v0.pos.y };
+        const double e { triangle.v0.pos.x - triangle.v2.pos.x };
+        const double f { triangle.v2.pos.x * triangle.v0.pos.y - triangle.v2.pos.y * triangle.v0.pos.x };
+
+        const double g { triangle.v0.pos.y - triangle.v1.pos.y };
+        const double h { triangle.v1.pos.x - triangle.v0.pos.x };
+        const double i { triangle.v0.pos.x * triangle.v1.pos.y - triangle.v0.pos.y * triangle.v1.pos.x };
+
+        const bool tl0 = is_top_left(triangle.v1.pos, triangle.v2.pos);
+        const bool tl1 = is_top_left(triangle.v2.pos, triangle.v0.pos);
+        const bool tl2 = is_top_left(triangle.v0.pos, triangle.v1.pos);
+
+        const double area { a * triangle.v0.pos.x + b * triangle.v0.pos.y + c };
+        const double inv_area { 1.0 / area };
+
+        if (area == 0.0)
+        {
+            return;
+        }
+
+        Vec3d w_row {
+            a * (bounds.min.x + 0.5) + b * (bounds.min.y + 0.5) + c,
+            d * (bounds.min.x + 0.5) + e * (bounds.min.y + 0.5) + f,
+            g * (bounds.min.x + 0.5) + h * (bounds.min.y + 0.5) + i
+        };
+
+        for (int y = std::floor(bounds.min.y); y < std::ceil(bounds.max.y); ++y)
+        {
+            Vec3d w { w_row };
+
+            for (int x = std::floor(bounds.min.x); x < std::ceil(bounds.max.x); ++x)
+            {
+                if ((w.x > 0 || (w.x == 0 && tl0)) && (w.y > 0 || (w.y == 0 && tl1)) && (w.z > 0 || (w.z == 0 && tl2)))
+                {
+                    const double depth {
+                        (w.x * triangle.v0.z_over_w + w.y * triangle.v1.z_over_w + w.z * triangle.v2.z_over_w) *
+                        inv_area
+                    };
+
+                    const int buffer_index { (y - tile.screen_pos.y) * TILE_SIZE + (x - tile.screen_pos.x) };
+
+                    if (depth < tile.depth_buffer[buffer_index])
+                    {
+                        tile.triangle_index_buffer[buffer_index] = tri_index;
+                        tile.material_id_buffer[buffer_index] = triangle.material_id;
+                        tile.depth_buffer[buffer_index] = depth;
+                    }
+                }
+
+                w.x += a;
+                w.y += d;
+                w.z += g;
+            }
+
+            w_row.x += b;
+            w_row.y += e;
+            w_row.z += h;
+        }
+    }
+
+    template <typename VectorType>
+    void RenderLayer<VectorType>::draw_wireframes(RenderSurface& render_surface) const
+    {
+        for (auto& tri : _screen_triangles)
+        {
+            draw_line(tri.v0.pos, tri.v1.pos, render_surface, settings.wireframe_color);
+            draw_line(tri.v1.pos, tri.v2.pos, render_surface, settings.wireframe_color);
+            draw_line(tri.v2.pos, tri.v0.pos, render_surface, settings.wireframe_color);
+        }
+    }
+
+    template <typename VectorType>
     int RenderLayer<VectorType>::num_inside_near_plane(
         const HomogenousCoordinate<VectorType>& v0,
         const HomogenousCoordinate<VectorType>& v1,
@@ -1291,16 +1330,5 @@ namespace gfx
                             v0.pos.y * (v1.pos.x * v2.w - v2.pos.x * v1.w) +
                             v0.w * (v1.pos.x * v2.pos.y - v2.pos.x * v1.pos.y);
         return area <= 0.0;
-    }
-
-    template <typename VectorType>
-    void RenderLayer<VectorType>::draw_wireframes(RenderSurface& render_surface) const
-    {
-        for (auto& tri : _screen_triangles)
-        {
-            draw_line(tri.v0.pos, tri.v1.pos, render_surface, settings.wireframe_color);
-            draw_line(tri.v1.pos, tri.v2.pos, render_surface, settings.wireframe_color);
-            draw_line(tri.v2.pos, tri.v0.pos, render_surface, settings.wireframe_color);
-        }
     }
 }

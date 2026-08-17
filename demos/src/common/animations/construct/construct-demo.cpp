@@ -554,7 +554,7 @@ namespace demos
 
         surface->clean();
         renderer->draw_frame(*surface, view, projection);
-        // render2D->draw_frame(*surface, view2D, OrthographicProjection(360));
+        render2D->draw_frame(*surface, view2D, OrthographicProjection(360));
         surface->present();
     }
 
