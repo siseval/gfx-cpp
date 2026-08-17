@@ -23,7 +23,6 @@ target_sources(gfx PRIVATE
         inc/gfx/core/material/fragment-shader.h
         inc/gfx/core/material/material.h
         inc/gfx/core/material/texture.h
-        inc/gfx/core/vertex-shader.h
 )
 
 # --- CORE/TYPES ---

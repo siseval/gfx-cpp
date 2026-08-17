@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gfx/core/material/material.h"
-#include "vertex-shader.h"
 #include "transform.h"
 #include "triangle-mesh.h"
 #include "gfx/core/types/uuid.h"

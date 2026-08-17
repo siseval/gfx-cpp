@@ -550,10 +550,11 @@ namespace demos
         text_item->set_text(
             std::format("FPS: {:.0f}\nTRI: {}", smoothed_fps, renderer->get_num_triangles())
         );
+        std::printf("FPS: %.0f\n", smoothed_fps);
 
         surface->clean();
         renderer->draw_frame(*surface, view, projection);
-        render2D->draw_frame(*surface, view2D, OrthographicProjection(360));
+        // render2D->draw_frame(*surface, view2D, OrthographicProjection(360));
         surface->present();
     }
 

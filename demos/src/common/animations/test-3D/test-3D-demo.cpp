@@ -402,8 +402,8 @@ namespace demos
 
         scene_graph->clear();
 
-        renderer->get_viewport().size = res360;
-        surface->set_resolution(res360);
+        renderer->get_viewport().size = res80;
+        surface->set_resolution(res80);
         
         surface->set_clear_color(Color4(0.0, 0.0, 0.0));
 
@@ -496,7 +496,7 @@ namespace demos
         constexpr double max_radius = 3.0;
         constexpr int num_boxes = 0;
         constexpr int num_spheres = 1000;
-        constexpr int num_segments = 12;
+        constexpr int num_segments = 30;
 
         const auto rand_pos = [](const double min, const double max) {
             return Vec3d::from_angles(
@@ -632,10 +632,11 @@ namespace demos
         text_item->set_text(
             std::format("FPS: {:.0f}\nTRI: {}", smoothed_fps, renderer->get_num_triangles())
         );
+        std::printf("FPS: %.0f\n", smoothed_fps);
         
         surface->clean();
         renderer->draw_frame(*surface, view, projection);
-        render2D->draw_frame(*surface, View<Vec2d>(res / 2, 0.0), OrthographicProjection(res.y));
+        // render2D->draw_frame(*surface, View<Vec2d>(res / 2, 0.0), OrthographicProjection(res.y));
         surface->present();
     }
 

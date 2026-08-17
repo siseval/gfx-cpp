@@ -11,6 +11,7 @@ namespace gfx
         VectorType pos;
         double w;
 
+        HomogenousCoordinate() = default;
         HomogenousCoordinate(VectorType pos, double w);
         HomogenousCoordinate(VectorType vector, double homogenous, const MatrixType& matrix);
         
