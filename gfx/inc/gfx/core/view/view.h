@@ -44,7 +44,7 @@ namespace gfx
     private:
 
         VectorType _position;
-        RotationType _rotation;
+        RotationType _rotation { 0.0 };
     };
 
     template <typename VectorType>

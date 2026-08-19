@@ -436,7 +436,7 @@ namespace demos
         auto font = font_manager->get_font("eva-classic");
 
         auto material { std::make_shared<Material>(std::make_shared<DefaultFragmentShader>()) };
-        auto res { render2D->get_viewport().size };
+        auto& res { render2D->get_viewport().size };
 
         text_item = std::make_shared<Text2D>();
         text_item->set_text("TEST");
@@ -476,7 +476,7 @@ namespace demos
 
         renderer->get_viewport().size = res360;
 
-        render2D->get_viewport().size = res360;
+        render2D->get_viewport().size = res80;
         surface->set_resolution(res360);
 
         const std::string assets_dir { assets / "models/ImageToStl/" };
@@ -547,6 +547,7 @@ namespace demos
         // debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
 
         view2D.set_position(static_cast<Vec2d>(render2D->get_viewport().size / 2));
+        // view2D.set_rotation(0.0);
         text_item->set_text(
             std::format("FPS: {:.0f}\nTRI: {}", smoothed_fps, renderer->get_num_triangles())
         );
@@ -554,7 +555,7 @@ namespace demos
 
         surface->clean();
         renderer->draw_frame(*surface, view, projection);
-        // render2D->draw_frame(*surface, view2D, OrthographicProjection(360));
+        render2D->draw_frame(*surface, view2D, OrthographicProjection(render2D->get_viewport().size.y));
         surface->present();
     }
 

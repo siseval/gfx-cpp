@@ -636,7 +636,7 @@ namespace demos
         
         surface->clean();
         renderer->draw_frame(*surface, view, projection);
-        // render2D->draw_frame(*surface, View<Vec2d>(res / 2, 0.0), OrthographicProjection(res.y));
+        render2D->draw_frame(*surface, View<Vec2d>(res / 2, 0.0), OrthographicProjection(res.y));
         surface->present();
     }
 
