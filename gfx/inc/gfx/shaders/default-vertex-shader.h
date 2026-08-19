@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gfx/core/material/vertex-shader.h"
+#include "../core/vertex-shader.h"
 
 namespace gfx
 {

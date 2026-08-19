@@ -15,7 +15,7 @@ namespace gfx
         explicit Material(const std::shared_ptr<FragmentShader>& frag_shader);
         Material(const std::shared_ptr<FragmentShader>& frag_shader, const std::shared_ptr<Texture>& tex);
 
-        int get_id() const;
+        size_t get_id() const;
 
         void set_texture(const std::shared_ptr<Texture>& tex);
         void set_fragment_shader(const std::shared_ptr<FragmentShader>& shader);
@@ -27,11 +27,11 @@ namespace gfx
 
     private:
 
-        static int next_id();
+        static size_t next_id();
 
         std::shared_ptr<Texture> _texture;
         std::shared_ptr<FragmentShader> _fragment_shader;
 
-        int _id;
+        size_t _id;
     };
 }

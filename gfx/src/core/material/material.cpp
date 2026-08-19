@@ -14,7 +14,7 @@ namespace gfx
         , _fragment_shader(frag_shader)
         , _id(next_id()) {}
 
-    int Material::get_id() const
+    size_t Material::get_id() const
     {
         return _id;
     }
@@ -39,9 +39,9 @@ namespace gfx
         return _fragment_shader;
     }
 
-    int Material::next_id()
+    size_t Material::next_id()
     {
-        static int next_id = 0;
+        static size_t next_id = 0;
         return next_id++;
     }
 }

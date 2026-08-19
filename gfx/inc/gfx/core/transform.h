@@ -32,8 +32,9 @@ namespace gfx
         const MatrixType& get_matrix() const;
 
         Transform combine(const Transform& child) const;
-        VectorType transform_coordinate(const VectorType& coordinate) const;
-        VectorType transform_vector(const VectorType& vector) const;
+        
+        static VectorType transform_vector(const VectorType& vector, const MatrixType& matrix);
+
 
     private:
 
@@ -132,48 +133,24 @@ namespace gfx
     {
         return Transform(_matrix * child._matrix);
     }
-
+    
     template <typename VectorType>
         requires (std::same_as<VectorType, Vec3d> || std::same_as<VectorType, Vec2d>)
-    VectorType Transform<VectorType>::transform_coordinate(const VectorType& coordinate) const
+    VectorType Transform<VectorType>::transform_vector(const VectorType& vector, const MatrixType& matrix)
     {
         if constexpr (std::same_as<VectorType, Vec2d>)
         {
             return Vec2d {
-                _matrix(0, 0) * coordinate.x + _matrix(0, 1) * coordinate.y + _matrix(0, 2) * 1.0,
-                _matrix(1, 0) * coordinate.x + _matrix(1, 1) * coordinate.y + _matrix(1, 2) * 1.0
+                matrix(0, 0) * vector.x + matrix(0, 1) * vector.y,
+                matrix(1, 0) * vector.x + matrix(1, 1) * vector.y
             };
         }
         else
         {
             return Vec3d {
-                _matrix(0, 0) * coordinate.x + _matrix(0, 1) * coordinate.y + _matrix(0, 2) * coordinate.z +
-                _matrix(0, 3) * 1.0,
-                _matrix(1, 0) * coordinate.x + _matrix(1, 1) * coordinate.y + _matrix(1, 2) * coordinate.z +
-                _matrix(1, 3) * 1.0,
-                _matrix(2, 0) * coordinate.x + _matrix(2, 1) * coordinate.y + _matrix(2, 2) * coordinate.z +
-                _matrix(2, 3) * 1.0
-            };
-        }
-    }
-
-    template <typename VectorType>
-        requires (std::same_as<VectorType, Vec3d> || std::same_as<VectorType, Vec2d>)
-    VectorType Transform<VectorType>::transform_vector(const VectorType& vector) const
-    {
-        if constexpr (std::same_as<VectorType, Vec2d>)
-        {
-            return Vec2d {
-                _matrix(0, 0) * vector.x + _matrix(0, 1) * vector.y,
-                _matrix(1, 0) * vector.x + _matrix(1, 1) * vector.y
-            };
-        }
-        else
-        {
-            return Vec3d {
-                _matrix(0, 0) * vector.x + _matrix(0, 1) * vector.y + _matrix(0, 2) * vector.z,
-                _matrix(1, 0) * vector.x + _matrix(1, 1) * vector.y + _matrix(1, 2) * vector.z,
-                _matrix(2, 0) * vector.x + _matrix(2, 1) * vector.y + _matrix(2, 2) * vector.z
+                matrix(0, 0) * vector.x + matrix(0, 1) * vector.y + matrix(0, 2) * vector.z,
+                matrix(1, 0) * vector.x + matrix(1, 1) * vector.y + matrix(1, 2) * vector.z,
+                matrix(2, 0) * vector.x + matrix(2, 1) * vector.y + matrix(2, 2) * vector.z
             };
         }
     }

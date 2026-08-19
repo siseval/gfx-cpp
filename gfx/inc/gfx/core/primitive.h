@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gfx/core/material/material.h"
-#include "gfx/core/material/vertex-shader.h"
 #include "transform.h"
 #include "triangle-mesh.h"
 #include "gfx/core/types/uuid.h"
@@ -30,7 +29,6 @@ namespace gfx
         void set_color(double r, double g, double b, double a = 1.0);
         void set_anchor(VectorType a);
         void set_material(const std::shared_ptr<Material>& mat, size_t slot = 0);
-        void set_vertex_shader(const std::shared_ptr<VertexShader<VectorType>>& shader);
 
         VectorType get_position() const;
         VectorType get_scale() const;
@@ -40,7 +38,6 @@ namespace gfx
         VectorType get_anchor() const;
         std::shared_ptr<Material> get_material(size_t slot = 0) const;
         const std::vector<std::shared_ptr<Material>>& get_materials() const;
-        std::shared_ptr<VertexShader<VectorType>> get_vertex_shader() const;
 
         AlignedBox<VectorType> get_aabb() const;
         BoundingBall<VectorType> get_bounding_sphere() const;
@@ -86,7 +83,6 @@ namespace gfx
         UUID _id;
 
         std::vector<std::shared_ptr<Material>> _materials;
-        std::shared_ptr<VertexShader<VectorType>> _vertex_shader;
 
         Color4 _color;
 
@@ -169,12 +165,6 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void Primitive<VectorType>::set_vertex_shader(const std::shared_ptr<VertexShader<VectorType>>& shader)
-    {
-        _vertex_shader = shader;
-    }
-
-    template <typename VectorType>
     VectorType Primitive<VectorType>::get_position() const
     {
         return _position;
@@ -224,12 +214,6 @@ namespace gfx
     const std::vector<std::shared_ptr<Material>>& Primitive<VectorType>::get_materials() const
     {
         return _materials;
-    }
-
-    template <typename VectorType>
-    std::shared_ptr<VertexShader<VectorType>> Primitive<VectorType>::get_vertex_shader() const
-    {
-        return _vertex_shader;
     }
 
     template <typename VectorType>

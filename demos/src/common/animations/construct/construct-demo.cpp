@@ -441,7 +441,7 @@ namespace demos
         text_item = std::make_shared<Text2D>();
         text_item->set_text("TEST");
         text_item->set_font(font);
-        text_item->set_font_size(25);
+        text_item->set_font_size(16);
         text_item->set_position(2.0, 2.0);
         text_item->set_alignment(Text2D::TextAlignment::LEFT);
         text_item->set_color(Color4::white());
@@ -449,8 +449,8 @@ namespace demos
         // text_item->set_anchor(0.5, 0.5);
         text_item->set_depth(-2.0);
         text_item->set_material(material);
-        
-        // render2D->get_scene_graph()->add_item(text_item);
+
+        render2D->get_scene_graph()->add_item(text_item);
 
         auto scene_graph { renderer->get_scene_graph() };
 
@@ -545,17 +545,16 @@ namespace demos
         smoothed_fps = smoothed_fps * 0.9 + raw_fps * 0.1;
 
         // debug_viewer->add_debug_line("triangles: " + std::to_string(renderer->get_render_3D()->get_num_triangles()), 0);
-        
-        view2D.set_position((Vec2d)(render2D->get_viewport().size / 2));
-        text_item->set_text("FPS: " + std::to_string(smoothed_fps));
+
+        view2D.set_position(static_cast<Vec2d>(render2D->get_viewport().size / 2));
+        text_item->set_text(
+            std::format("FPS: {:.0f}\nTRI: {}", smoothed_fps, renderer->get_num_triangles())
+        );
+        std::printf("FPS: %.0f\n", smoothed_fps);
 
         surface->clean();
         renderer->draw_frame(*surface, view, projection);
-        render2D->draw_frame(
-            *surface,
-            view2D,
-            OrthographicProjection(360)
-        );
+        render2D->draw_frame(*surface, view2D, OrthographicProjection(360));
         surface->present();
     }
 
