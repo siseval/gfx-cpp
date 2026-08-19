@@ -3,9 +3,7 @@ project(gfx VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(gfx
-        inc/gfx/core/types/homogenous-coordinate.h)
-
+add_library(gfx)
 
 # === PUBLIC HEADERS ===
 
@@ -31,6 +29,7 @@ target_sources(gfx PRIVATE
         inc/gfx/core/types/color4.h
         inc/gfx/core/triangle-mesh.h
         inc/gfx/core/types/uuid.h
+        inc/gfx/core/types/homogenous-coordinate.h
 )
 
 # --- CORE/VIEW ---

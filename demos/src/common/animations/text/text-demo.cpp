@@ -41,7 +41,7 @@ namespace demos
 
         if (render2D->fonts_empty())
         {
-            render2D->load_font_directory("/home/sisev/Projects/code/cpp/sigfx/assets/fonts");
+            render2D->load_font_directory(assets / "/fonts");
         }
 
         const auto font_1 { render2D->get_font("eva-classic") };

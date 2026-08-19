@@ -542,7 +542,7 @@ namespace demos
         render2D = std::make_shared<RenderLayer<Vec2d>>(renderer->get_viewport());
         font_manager = std::make_shared<FontManagerTTF>();
 
-        font_manager->load_font_directory("/home/sisev/projects/code/cpp/sigfx/assets/fonts");
+        font_manager->load_font_directory(assets / "fonts");
 
         auto font = font_manager->get_font("eva-classic");
 

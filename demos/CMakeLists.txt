@@ -78,6 +78,11 @@ target_include_directories(demos_common
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+target_compile_definitions(demos_common PUBLIC
+        ASSETS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/"
+)
+
+
 target_link_libraries(demos_common PUBLIC gfx::gfx)
 
 add_executable(demo_glfw

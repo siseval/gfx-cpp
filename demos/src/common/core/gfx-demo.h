@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -120,6 +121,8 @@ namespace demos
         }
 
     protected:
+        
+        std::filesystem::path assets = ASSETS_DIR;
 
         std::shared_ptr<gfx::RenderLayer<VectorType>> renderer;
         std::shared_ptr<gfx::RenderSurface> surface;

@@ -38,7 +38,7 @@ namespace gfx
             RenderSurface& render_surface,
             const View<VectorType>& view,
             const Projection<VectorType>& projection
-        ) const;
+        );
 
         std::shared_ptr<SceneGraph<VectorType>> get_scene_graph() const;
         Viewport& get_viewport();
@@ -75,7 +75,7 @@ namespace gfx
 
         using DrawQueue = std::vector<std::pair<std::shared_ptr<Primitive<VectorType>>, Transform<VectorType>>>;
 
-        static constexpr int VERTEX_CHUNKING_FACTOR = 128;
+        static constexpr int VERTEX_CHUNKING_FACTOR = 16;
         static constexpr int TILE_SIZE = 32;
 
         struct MeshRange
@@ -158,20 +158,19 @@ namespace gfx
             }
         };
 
+        void build_material_map(const DrawQueue& draw_queue);
+        void generate_mesh_ranges(const DrawQueue& draw_queue, const MatrixType& vp_matrix);
 
-        void build_material_map(const DrawQueue& draw_queue) const;
-        void generate_mesh_ranges(const DrawQueue& draw_queue, const MatrixType& vp_matrix) const;
+        void transform_vertices();
+        void process_vertex_chunk(size_t chunk_start, size_t chunk_end);
 
-        void transform_vertices() const;
-        void process_vertex_chunk(size_t chunk_start, size_t chunk_end) const;
-
-        void generate_screen_triangles() const;
+        void generate_screen_triangles();
 
         void process_triangle_chunk(
             size_t chunk_start,
             size_t chunk_end,
             ThreadState& thread_state
-        ) const;
+        );
 
         ClipVertex create_clip_vertex(
             const HomogenousCoordinate<VectorType>& coordinate,
@@ -189,8 +188,8 @@ namespace gfx
 
         ScreenVertex clip_to_screen(const ClipVertex& vertex, double z) const;
 
-        void generate_tiles() const;
-        void bin_triangles() const;
+        void generate_tiles();
+        void bin_triangles();
 
         void render_tile(Tile& tile, RenderSurface& render_surface) const;
         static void rasterize_triangle_in_tile(const ScreenTriangle& triangle, int tri_index, Tile& tile);
@@ -222,29 +221,29 @@ namespace gfx
         std::shared_ptr<ThreadPool> _thread_pool;
         std::vector<std::shared_ptr<FragmentShader>> _fullscreen_shaders;
 
-        mutable std::vector<ThreadState> _thread_states;
+        std::vector<ThreadState> _thread_states;
 
-        mutable double _frame_start_timestamp { 0.0 };
+        double _frame_start_timestamp { 0.0 };
 
-        mutable size_t _total_vertices { 0 };
-        mutable size_t _total_triangles { 0 };
-        mutable size_t _num_screen_triangles { 0 };
+        size_t _total_vertices { 0 };
+        size_t _total_triangles { 0 };
+        size_t _num_screen_triangles { 0 };
 
-        mutable std::vector<MeshRange> _mesh_ranges;
-        mutable std::vector<size_t> _mesh_vertex_chunk_offsets;
-        mutable std::vector<size_t> _mesh_triangle_chunk_offsets;
+        std::vector<MeshRange> _mesh_ranges;
+        std::vector<size_t> _mesh_vertex_chunk_offsets;
+        std::vector<size_t> _mesh_triangle_chunk_offsets;
 
-        mutable std::unordered_map<size_t, std::shared_ptr<Material>> _material_map;
+        std::unordered_map<size_t, std::shared_ptr<Material>> _material_map;
 
-        mutable std::vector<HomogenousCoordinate<VectorType>> _vertex_out_buffer;
-        mutable std::vector<VertexBufferIndexFace> _index_faces;
+        std::vector<HomogenousCoordinate<VectorType>> _vertex_out_buffer;
+        std::vector<VertexBufferIndexFace> _index_faces;
 
-        mutable std::vector<size_t> _index_face_to_material_id_map;
+        std::vector<size_t> _index_face_to_material_id_map;
 
-        mutable std::vector<ScreenTriangle> _screen_triangles;
+        std::vector<ScreenTriangle> _screen_triangles;
 
-        mutable Vec2i _last_resolution { 0, 0 };
-        mutable std::vector<Tile> _tiles;
+        Vec2i _last_resolution { 0, 0 };
+        std::vector<Tile> _tiles;
     };
 
     template <typename VectorType>
@@ -259,7 +258,7 @@ namespace gfx
         RenderSurface& render_surface,
         const View<VectorType>& view,
         const Projection<VectorType>& projection
-    ) const
+    )
     {
         _frame_start_timestamp =
             std::chrono::duration<double, std::milli>(
@@ -316,7 +315,7 @@ namespace gfx
     template <typename VectorType>
     int RenderLayer<VectorType>::get_num_triangles() const
     {
-        return _screen_triangles.size();
+        return _num_screen_triangles;
     }
 
     template <typename VectorType>
@@ -429,7 +428,7 @@ namespace gfx
 
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::build_material_map(const DrawQueue& draw_queue) const
+    void RenderLayer<VectorType>::build_material_map(const DrawQueue& draw_queue)
     {
         _material_map.clear();
 
@@ -446,7 +445,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::generate_mesh_ranges(const DrawQueue& draw_queue, const MatrixType& vp_matrix) const
+    void RenderLayer<VectorType>::generate_mesh_ranges(const DrawQueue& draw_queue, const MatrixType& vp_matrix)
     {
         _mesh_ranges.clear();
         _mesh_vertex_chunk_offsets.clear();
@@ -501,7 +500,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::transform_vertices() const
+    void RenderLayer<VectorType>::transform_vertices()
     {
         if (_vertex_out_buffer.size() < _total_vertices)
         {
@@ -530,7 +529,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::process_vertex_chunk(const size_t chunk_start, const size_t chunk_end) const
+    void RenderLayer<VectorType>::process_vertex_chunk(const size_t chunk_start, const size_t chunk_end)
     {
         size_t mesh_index {
             static_cast<size_t>(
@@ -559,7 +558,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::generate_screen_triangles() const
+    void RenderLayer<VectorType>::generate_screen_triangles()
     {
         const int num_threads { _thread_pool->get_num_threads() };
         const int num_chunks { num_threads * VERTEX_CHUNKING_FACTOR };
@@ -619,7 +618,7 @@ namespace gfx
         const size_t chunk_start,
         const size_t chunk_end,
         ThreadState& thread_state
-    ) const
+    )
     {
         size_t mesh_index {
             static_cast<size_t>(
@@ -629,7 +628,7 @@ namespace gfx
 
         size_t& num_added = thread_state.num_triangles = 0;
         std::vector<ScreenTriangle>& screen_triangles = thread_state.local_triangles;
-        
+
         size_t chunk_size { (chunk_end - chunk_start) * 2 };
         if (screen_triangles.size() < chunk_size)
         {
@@ -715,6 +714,14 @@ namespace gfx
 
                     for (int j = 0; j < num_returned; ++j)
                     {
+                        if (is_backface(
+                            new_triangles[j].v0.coordinate,
+                            new_triangles[j].v1.coordinate,
+                            new_triangles[j].v2.coordinate
+                        ))
+                        {
+                            continue;
+                        }
                         screen_triangles[num_added++] = ScreenTriangle {
                             .v0          = clip_to_screen(new_triangles[j].v0, new_triangles[j].v0.coordinate.pos.z),
                             .v1          = clip_to_screen(new_triangles[j].v1, new_triangles[j].v1.coordinate.pos.z),
@@ -784,8 +791,8 @@ namespace gfx
                 .normal = Vec3d::zero(),
                 .uv     = mesh.get_uvs().size() > attribute_index ? mesh.get_uvs()[attribute_index] : Vec2d::zero(),
                 .color  = mesh.get_colors().size() > attribute_index ?
-                          mesh.get_colors()[attribute_index] :
-                          Color4::white(),
+                         mesh.get_colors()[attribute_index] :
+                         Color4::white(),
                 .inv_w    = inv_w,
                 .z_over_w = z * inv_w
             };
@@ -814,7 +821,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::generate_tiles() const
+    void RenderLayer<VectorType>::generate_tiles()
     {
         const Vec2i resolution { _viewport.size };
         if (resolution == _last_resolution)
@@ -843,7 +850,7 @@ namespace gfx
     }
 
     template <typename VectorType>
-    void RenderLayer<VectorType>::bin_triangles() const
+    void RenderLayer<VectorType>::bin_triangles()
     {
         const Vec2i resolution { _viewport.size };
 

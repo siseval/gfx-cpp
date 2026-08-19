@@ -1,5 +1,6 @@
 #include "gfx/core/render-surface.h"
 
+#include <algorithm>
 #include <bit>
 
 namespace gfx

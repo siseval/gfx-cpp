@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ranges>
 #include <stack>
 
 #include "gfx/core/primitive.h"

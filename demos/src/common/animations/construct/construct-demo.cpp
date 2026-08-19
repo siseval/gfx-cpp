@@ -431,7 +431,7 @@ namespace demos
         render2D = std::make_shared<RenderLayer<Vec2d>>(renderer->get_viewport());
         font_manager = std::make_shared<FontManagerTTF>();
 
-        font_manager->load_font_directory("/home/sisev/projects/code/cpp/sigfx/assets/fonts");
+        font_manager->load_font_directory(assets / "fonts");
 
         auto font = font_manager->get_font("eva-classic");
 
@@ -479,7 +479,7 @@ namespace demos
         render2D->get_viewport().size = res360;
         surface->set_resolution(res360);
 
-        const std::string assets_dir { "/home/sisev/projects/code/cpp/sigfx/assets/models/ImageToStl/" };
+        const std::string assets_dir { assets / "models/ImageToStl/" };
 
         const auto diffuse_shader { std::make_shared<DiffuseFragmentShader>() };
 
@@ -554,7 +554,7 @@ namespace demos
 
         surface->clean();
         renderer->draw_frame(*surface, view, projection);
-        render2D->draw_frame(*surface, view2D, OrthographicProjection(360));
+        // render2D->draw_frame(*surface, view2D, OrthographicProjection(360));
         surface->present();
     }
 

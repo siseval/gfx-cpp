@@ -35,6 +35,11 @@ namespace gfx
         }
     }
 
+    int ThreadPool::get_num_threads() const
+    {
+        return _num_threads;
+    }
+
     void ThreadPool::worker_loop()
     {
         while (_running)
@@ -59,10 +64,5 @@ namespace gfx
 
             _barrier.arrive_and_wait();
         }
-    }
-
-    int ThreadPool::get_num_threads() const
-    {
-        return _num_threads;
     }
 }
