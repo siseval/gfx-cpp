@@ -32,7 +32,10 @@ namespace gfx
 
         using MatrixType = Transform<VectorType>::MatrixType;
 
-        explicit RenderLayer(const Viewport& viewport);
+        explicit RenderLayer(
+            const Viewport& viewport,
+            std::shared_ptr<ThreadPool> thread_pool = ThreadPool::default_thread_pool()
+        );
 
         void draw_frame(
             RenderSurface& render_surface,
@@ -247,10 +250,10 @@ namespace gfx
     };
 
     template <typename VectorType>
-    RenderLayer<VectorType>::RenderLayer(const Viewport& viewport)
+    RenderLayer<VectorType>::RenderLayer(const Viewport& viewport, std::shared_ptr<ThreadPool> thread_pool)
         : _viewport(viewport)
         , _scene_graph(std::make_shared<SceneGraph<VectorType>>())
-        , _thread_pool(std::make_shared<ThreadPool>(std::thread::hardware_concurrency()))
+        , _thread_pool(std::move(thread_pool))
         , _thread_states(std::vector<ThreadState>(std::thread::hardware_concurrency())) {}
 
     template <typename VectorType>

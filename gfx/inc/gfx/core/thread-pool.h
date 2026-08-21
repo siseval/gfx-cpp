@@ -15,6 +15,8 @@ namespace gfx
         explicit ThreadPool(int num_threads);
 
         ~ThreadPool();
+        
+        static std::shared_ptr<ThreadPool> default_thread_pool();
 
         template <typename FN>
         void run(const int count, FN&& fn)

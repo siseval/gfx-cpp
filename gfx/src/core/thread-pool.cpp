@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <functional>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -34,6 +35,21 @@ namespace gfx
             }
         }
     }
+    
+    std::shared_ptr<ThreadPool> ThreadPool::default_thread_pool() 
+    {
+        static std::weak_ptr<ThreadPool> cached;
+        static std::mutex mutex;
+
+        std::lock_guard<std::mutex> lock(mutex);
+        if (auto pointer = cached.lock()) 
+        {
+            return pointer;
+        }
+        auto pointer = std::make_shared<ThreadPool>(std::thread::hardware_concurrency());
+        cached = pointer;
+        return pointer;
+    }    
 
     int ThreadPool::get_num_threads() const
     {
