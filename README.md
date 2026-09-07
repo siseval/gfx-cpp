@@ -3,7 +3,7 @@ A simple retained mode graphics-API, still very much a work in progress
 
 Currently the two supported rendering backends are:
 
-- Terminal rendering using **ncurses** 
+- ~Terminal rendering using **ncurses**~
 - GL-window rendering using **GLFW**
 
 ### Setup
